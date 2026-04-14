@@ -1,0 +1,233 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"] // change from default
+}
+
+datasource db {
+  provider = "sqlite" // d1 is sql base database
+  url      = env("DATABASE_URL")
+}
+
+// Create a simple model database
+model User {
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String?
+}
+
+model FacturaSinInva {
+  id          String    @id @default(uuid())
+  facturaId   Float     @default(0)
+  code        String?
+  valueCupon  Float?
+  isUsedCupon Boolean   @default(false)
+  expireCupon DateTime? @default("2025-07-14T02:46:36.459Z")
+  name        String
+  email       String?
+  phone       Int?
+  isPrinted   Boolean   @default(true)
+  datePrint   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default("2025-07-14T02:46:36.459Z") @updatedAt
+  address     String
+  dni         Int?
+  subTotal    Float
+  total       Float
+
+  products  ProductSchema[]
+  discounts DiscountSchema[]
+}
+
+model RespuestaPredefinidasSchema {
+  id        Int      @id @default(autoincrement())
+  mensaje   String
+  respuesta String
+  createdAt DateTime @default(now())
+}
+
+model ProductSchema {
+  id               Int            @id @default(autoincrement())
+  productId        String?
+  title            String
+  price            Float
+  quantity         Int
+  facturaSinInva   FacturaSinInva @relation(fields: [facturaSinInvaId], references: [id])
+  facturaSinInvaId String
+}
+
+model DiscountSchema {
+  id               Int            @id @default(autoincrement())
+  title            String?
+  amount           Float?
+  cupon            Boolean?
+  isValid          Boolean?
+  facturaSinInva   FacturaSinInva @relation(fields: [facturaSinInvaId], references: [id])
+  facturaSinInvaId String
+}
+
+model Categoria {
+  id            String     @id @default(cuid()) // 👈 clave primaria
+  seoTitle      String
+  categoryId    String     @unique
+  position      Int        @default(0)
+  img           String
+  imagenPrefijo String
+  title         String
+  productos     Producto[] // 1:N
+}
+
+model Producto {
+  id            String                @id @default(cuid())
+  cantidad      Int?
+  title         String?
+  description   String?
+  productId     String?
+  categoryId    String // ahora referencia a Categoria.id
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @default("2025-07-14T02:46:36.459Z") @updatedAt
+  categoria     Categoria             @relation(fields: [categoryId], references: [id]) // 👈 cambia "categoryId" → "id"
+  price         Float                 @default(0)
+  identificador String                @unique
+  docena        Boolean?
+  variants      Variants_producto[]
+  inStock       Boolean?              @default(true)
+  isPrivate     Boolean?              @default(false)
+  topicTags     TopicTag[]
+  recomendados  ProductoRecomendado[]
+}
+
+model TopicTag {
+  id         String   @id @default(cuid())
+  tag        String
+  productoId String
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+}
+
+model Variants_producto {
+  id              String     @id @default(cuid())
+  description     String?
+  sizes_x         Float?
+  sizes_y         Float?
+  sizes_z         Float?
+  precioDocena    Float?
+  price           Float
+  priceWithoutOff Float
+  productoId      String
+  producto        Producto   @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  images          Imagenes[]
+  colors          Colors[]
+}
+
+model Imagenes {
+  id           String            @id @default(cuid())
+  isVideo      Boolean?
+  needContrast Boolean?
+  src          String
+  variantId    String
+  variant      Variants_producto @relation(fields: [variantId], references: [id], onDelete: Cascade)
+}
+
+model Colors {
+  id        String            @id @default(cuid())
+  name      String?
+  color     String
+  variantId String
+  variant   Variants_producto @relation(fields: [variantId], references: [id], onDelete: Cascade)
+}
+
+model ProductoRecomendado {
+  id            String   @id @default(cuid())
+  productoId    String // ID del producto principal
+  recomendadoId String // ID del producto recomendado
+  createdAt     DateTime @default(now())
+
+  producto Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@unique([productoId, recomendadoId])
+  @@index([productoId])
+}
+
+model UsuarioClub {
+  id        String   @id @default(cuid())
+  nombre    String?
+  email     String?  @unique
+  telefono  String?
+  cedula    String?
+  nivel     Int?     @default(1)
+  avance    Int?     @default(2)
+  createdAt DateTime @default(now())
+}
+
+model MaterialesJandre {
+  id           String   @id @default(cuid())
+  nombre       String?
+  tipo         String?
+  costoPlancha Float?
+  createdAt    DateTime @default(now())
+}
+
+model imageFromGallery {
+  id          String   @id @default(cuid())
+  isVideo     Boolean?
+  src         String
+  createdAt   DateTime @default(now())
+  description String?
+}
+
+model coleccionesTag {
+  id          String   @id @default(cuid())
+  word        String
+  title       String?
+  type        String?
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+model gastosJandrea {
+  id          String   @id @default(cuid())
+  title       String?
+  description String?
+  mount       Float?
+  type        String?
+  createdAt   DateTime @default(now())
+}
+
+
+model bannerWeb {
+  id          String   @id @default(cuid())
+  title       String?
+  description String?
+  image       String?
+  link        String?
+  position    Int      @default(0)
+  isActive    Boolean  @default(true)
+  activeDate  String?
+  createdAt   DateTime @default(now())
+}
+
+model FcmToken {
+  id            String                 @id @default(cuid())
+  token         String                 @unique
+  userId        String?
+  deviceInfo    String?
+  isActive      Boolean                @default(true)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  subscriptions FcmTopicSubscription[]
+
+  @@index([userId])
+  @@index([token])
+  @@index([isActive])
+}
+
+model FcmTopicSubscription {
+  id        String   @id @default(cuid())
+  topic     String
+  tokenId   String
+  token     FcmToken @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([tokenId, topic])
+  @@index([topic])
+  @@index([tokenId])
+}

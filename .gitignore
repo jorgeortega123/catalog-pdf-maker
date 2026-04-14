@@ -1,0 +1,5 @@
+.claude
+__pycache__
+docs
+api/__pycache__
+core/__pycache__

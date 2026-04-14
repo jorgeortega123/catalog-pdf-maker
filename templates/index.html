@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Catálogos PDF</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1>📄 Generador de Catálogos PDF</h1>
+            <p class="subtitle">Crea catálogos A4 personalizados de productos</p>
+        </header>
+
+        <!-- Generate Button -->
+        <div class="generate-section">
+            <button id="generate-btn" class="btn-generate" disabled>
+                <span class="btn-icon">📥</span>
+                <span class="btn-text">Generar Catálogo PDF</span>
+            </button>
+            <div id="validation-status" class="status-message"></div>
+        </div>
+
+        <!-- Main Content - Single Panel -->
+        <main class="main-content">
+            <div class="panel-grid">
+                <!-- Left Column: Category & Images -->
+                <div class="panel-column">
+                    <!-- Category Selection -->
+                    <section class="panel-section">
+                        <h2>📁 Categoría</h2>
+                        <div id="categories-grid" class="categories-grid-compact">
+                            <div class="loading">Cargando categorías...</div>
+                        </div>
+                    </section>
+
+                    <!-- Images Configuration -->
+                    <section class="panel-section">
+                        <h2>🖼️ Imágenes</h2>
+                        <div class="images-config-compact">
+                            <div class="image-input-group">
+                                <label>Portada</label>
+                                <input type="url" id="cover-url" class="url-input" placeholder="https://...">
+                                <div id="cover-preview" class="image-preview-small"></div>
+                            </div>
+
+                            <div class="image-input-group">
+                                <label>Fondo de Páginas</label>
+                                <input type="url" id="background-url" class="url-input" placeholder="https://...">
+                                <div id="background-preview" class="image-preview-small"></div>
+                            </div>
+
+                            <div class="image-input-group">
+                                <label>Contraportada</label>
+                                <input type="url" id="back-cover-url" class="url-input" placeholder="https://...">
+                                <div id="back-cover-preview" class="image-preview-small"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Layout Configuration -->
+                    <section class="panel-section">
+                        <h2>📐 Productos por Página</h2>
+                        <div class="layout-info">
+                            <p>Páginas A4: 210mm × 297mm</p>
+                            <p>Layout: Imagen grande + detalles en cascada</p>
+                        </div>
+                        <div class="layout-config-compact">
+                            <div class="layout-option-compact selected" data-products="3">
+                                <span class="layout-label">3 productos</span>
+                                <span class="layout-detail">Más espacio</span>
+                            </div>
+                            <div class="layout-option-compact" data-products="4">
+                                <span class="layout-label">4 productos</span>
+                                <span class="layout-detail">Recomendado</span>
+                            </div>
+                            <div class="layout-option-compact" data-products="5">
+                                <span class="layout-label">5 productos</span>
+                                <span class="layout-detail">Compacto</span>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Right Column: Products Table -->
+                <div class="panel-column panel-column-wide">
+                    <section class="panel-section panel-section-full">
+                        <div class="products-header">
+                            <h2>📦 Productos</h2>
+                            <div class="products-stats">
+                                <span id="total-products">0 productos</span>
+                                <span id="estimated-pages">~0 páginas</span>
+                            </div>
+                        </div>
+
+                        <div class="products-table-wrapper">
+                            <table id="products-table" class="products-table-modern">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;">#</th>
+                                        <th style="width: 60px;">Img</th>
+                                        <th>Producto</th>
+                                        <th style="width: 100px;">Precio</th>
+                                        <th style="width: 120px;">Medidas</th>
+                                        <th style="width: 80px;">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-tbody">
+                                    <tr>
+                                        <td colspan="6" class="empty-state">
+                                            Selecciona una categoría para ver los productos
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" style="display: none;">
+        <div class="loading-modal">
+            <div class="spinner-large"></div>
+            <h3 id="loading-title">Generando PDF...</h3>
+            <p id="loading-message">Procesando productos e imágenes...</p>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-modern" style="display: none;"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
