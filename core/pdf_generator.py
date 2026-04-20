@@ -165,13 +165,25 @@ class PDFGenerator:
                 else:
                     image_url = getattr(images[0], 'src', None)
 
+            if isinstance(product, dict):
+                description = product.get("description", "") or product.get("body_html", "") or ""
+            else:
+                description = getattr(product, 'description', "") or getattr(product, 'body_html', "") or ""
+
+            # Strip HTML tags from description
+            import re
+            description = re.sub(r'<[^>]+>', '', description).strip()
+            if len(description) > 75:
+                description = description[:72] + "..."
+
             products_data.append({
                 'title': title,
                 'price': float(price) if price else 0.0,
                 'image_url': image_url,
                 'width': sizes_x,
                 'height': sizes_y,
-                'depth': sizes_z
+                'depth': sizes_z,
+                'description': description,
             })
 
         return products_data
@@ -194,8 +206,8 @@ def validate_image_url(url: str) -> bool:
         return False
 
 
-def estimate_pdf_pages(product_count: int, products_per_page: int = 3) -> int:
-    """Estimate PDF pages (3 products per page)"""
+def estimate_pdf_pages(product_count: int, products_per_page: int = 6) -> int:
+    """Estimate PDF pages (6 products per page)"""
     pages = (product_count + products_per_page - 1) // products_per_page
     return pages + 2  # +2 for cover and back cover
 

@@ -2,10 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo - {{ category_name }}</title>
     <style>
-        /* Modern Professional PDF Catalog - Horizontal Card Layout */
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
         * {
@@ -15,19 +13,17 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'Inter', Arial, Helvetica, sans-serif;
             background: #ffffff;
             color: #1a1a2e;
             line-height: 1.4;
         }
 
-        /* PDF Page Settings */
         @page {
             size: A4;
             margin: 0;
         }
 
-        /* Page Container */
         .pdf-page {
             width: 210mm;
             height: 297mm;
@@ -36,13 +32,9 @@
             overflow: hidden;
         }
 
-        /* ==================== COVER PAGE ==================== */
+        /* ==================== COVER ==================== */
         .cover-page {
             background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             text-align: center;
             position: relative;
         }
@@ -63,7 +55,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(180deg, rgba(26, 26, 46, 0.75) 0%, rgba(15, 52, 96, 0.9) 100%);
+            background: linear-gradient(180deg, rgba(26,26,46,0.75) 0%, rgba(15,52,96,0.9) 100%);
             z-index: 1;
         }
 
@@ -72,6 +64,8 @@
             z-index: 2;
             color: white;
             padding: 20mm;
+            display: table;
+            margin: 0 auto;
         }
 
         .cover-brand {
@@ -89,7 +83,6 @@
             font-weight: 700;
             margin-bottom: 8mm;
             line-height: 1.1;
-            letter-spacing: -0.5px;
         }
 
         .cover-subtitle {
@@ -118,20 +111,7 @@
         /* ==================== PRODUCT PAGE ==================== */
         .product-page {
             position: relative;
-            background-image: url('{% if background_url %}{{ background_url }}{% endif %}');
-            background-size: cover;
-            background-position: center;
-        }
-
-        .product-page::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.85);
-            z-index: 0;
+            background: #f0ebe4;
         }
 
         /* Header */
@@ -142,14 +122,20 @@
             right: 0;
             height: 12mm;
             background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 10mm;
             z-index: 20;
         }
 
+        .header-inner {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
         .header-logo {
+            display: table-cell;
+            padding: 0 10mm;
+            text-align: left;
+            vertical-align: middle;
             font-family: 'Playfair Display', Georgia, serif;
             font-size: 13px;
             font-weight: 700;
@@ -157,7 +143,11 @@
             letter-spacing: 1px;
         }
 
-        .header-category {
+        .header-cat {
+            display: table-cell;
+            padding: 0 10mm;
+            text-align: right;
+            vertical-align: middle;
             font-size: 8px;
             font-weight: 500;
             color: rgba(255,255,255,0.7);
@@ -165,134 +155,136 @@
             text-transform: uppercase;
         }
 
-        /* Products Container - Cascade Layout */
-        .products-container {
+        /* Products Container */
+        .products-area {
             position: relative;
             z-index: 10;
-            padding: 15mm 10mm 9mm;
-            height: 100%;
+            padding: 14mm 7mm 10mm;
         }
 
-        /* Product Card - Traditional Layout (Image LEFT, Info RIGHT) */
-        .product-card {
-            background: white;
-            border-radius: 6px 0 0 6px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-            border: 1px solid #e8e8e8;
-            border-right: none;
-            page-break-inside: avoid;
-            margin-bottom: 3mm;
-            min-height: 75mm;
+        /* Grid Table — 2 columnas x 4 filas */
+        .grid-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 4mm 5mm;
         }
 
-        .product-card::before {
-            content: '';
+        .grid-table td {
+            width: 50%;
+            vertical-align: top;
+            padding: 0;
+        }
+
+        /* Card horizontal: imagen izq, texto der */
+        .card {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            background: #f0ebe4;
+        }
+
+        .card-img-cell {
+            display: table-cell;
+            width: 44mm;
+            vertical-align: top;
+        }
+
+        /* Imagen cuadrada 44x44mm */
+        .card-img-box {
+            width: 44mm;
+            height: 44mm;
+            background: #c5bdb3;
+            border-top-left-radius: 14px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .card-img-box img {
             position: absolute;
             top: 0;
             left: 0;
-            width: 4px;
-            height: 100%;
-            background: linear-gradient(180deg, #e94560, #0f3460);
-        }
-
-        /* Product Image - LEFT Side */
-        .product-image-container {
-            float: left;
-            width: 40%;
-            height: 75mm;
-            background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
-            text-align: center;
-            padding: 0;
-            position: relative;
-        }
-
-        .product-image {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
         }
 
-        .product-badge {
+        /* Esquina cóncava inferior derecha */
+        .img-notch {
             position: absolute;
-            top: 3mm;
-            left: 3mm;
-            background: #1a1a2e;
-            color: white;
-            font-size: 8px;
-            font-weight: 700;
-            padding: 2px 6px;
-            border-radius: 3px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            bottom: 0;
+            right: 0;
+            width: 18px;
+            height: 18px;
+            background: #f0ebe4;
+            border-top-left-radius: 18px;
         }
 
-        /* Product Details - RIGHT Side */
-        .product-details {
-            margin-left: 40%;
-            padding: 4mm 6mm 4mm 4mm;
-            min-height: 75mm;
+        /* Texto derecha */
+        .card-body {
             display: table-cell;
-            vertical-align: middle;
+            vertical-align: top;
+            padding: 0 1mm 0 4mm;
         }
 
-        .product-title {
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 13px;
-            font-weight: 600;
-            color: #1a1a2e;
-            margin-bottom: 3mm;
-            line-height: 1.3;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        /* Price Section */
-        .price-section {
-            display: flex;
-            align-items: center;
-            gap: 2mm;
-            margin-bottom: 3mm;
-        }
-
-        .product-price {
-            font-size: 20px;
+        .card-title {
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 9.5px;
             font-weight: 800;
-            color: #e94560;
-            letter-spacing: -0.5px;
-        }
-
-        /* Info Section */
-        .info-section {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.5mm;
-        }
-
-        .info-item {
-            display: flex;
-            align-items: center;
-            gap: 1.5mm;
-            background: #f8f9fa;
-            padding: 1.5mm 3mm;
-            border-radius: 3px;
-            border: 1px solid #e9ecef;
-        }
-
-        .info-label {
-            font-size: 8px;
-            font-weight: 700;
-            color: #6c757d;
+            color: #1a1a1a;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
+            margin-bottom: 2mm;
+            line-height: 1.25;
         }
 
-        .info-value {
-            font-size: 10px;
+        .card-desc {
+            font-size: 8px;
+            font-weight: 400;
+            color: #4a4640;
+            line-height: 1.5;
+            margin-bottom: 2.5mm;
+        }
+
+        .card-dims {
+            margin-bottom: 2.5mm;
+        }
+
+        .dim-row {
+            display: block;
+            font-size: 7.5px;
+            margin-bottom: 0.8mm;
+            line-height: 1.3;
+        }
+
+        .dim-label {
+            font-weight: 700;
+            color: #888888;
+            margin-right: 1.5mm;
+        }
+
+        .dim-value {
             font-weight: 600;
-            color: #1a1a2e;
+            color: #333333;
+        }
+
+        .sku-pill {
+            display: inline-block;
+            font-size: 8px;
+            font-weight: 500;
+            color: #333333;
+            border: 1px solid #888888;
+            border-radius: 20px;
+            padding: 1px 7px;
+            background: transparent;
+            margin-bottom: 2mm;
+        }
+
+        .card-price {
+            font-size: 17px;
+            font-weight: 800;
+            color: #1a1a1a;
+            line-height: 1;
         }
 
         /* Footer */
@@ -302,26 +294,35 @@
             left: 0;
             right: 0;
             height: 8mm;
-            background: #f8f9fa;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 10mm;
-            border-top: 1px solid #e9ecef;
+            background: #e8e2da;
+            border-top: 1px solid #d5cfc6;
             z-index: 20;
         }
 
-        .footer-text {
-            font-size: 8px;
-            color: #6c757d;
-            letter-spacing: 0.5px;
+        .footer-inner {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
         }
 
-        .page-number {
+        .footer-text {
+            display: table-cell;
+            padding: 0 10mm;
+            text-align: left;
+            vertical-align: middle;
+            font-size: 8px;
+            color: #7a7068;
+        }
+
+        .page-num {
+            display: table-cell;
+            padding: 0 10mm;
+            text-align: right;
+            vertical-align: middle;
             font-family: 'Playfair Display', Georgia, serif;
             font-size: 11px;
             font-weight: 600;
-            color: #1a1a2e;
+            color: #3a3530;
         }
 
         /* ==================== BACK COVER ==================== */
@@ -335,134 +336,108 @@
             object-fit: cover;
         }
 
-        .back-cover-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            color: white;
-        }
-
-        .back-cover-title {
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 36px;
-            font-weight: 700;
-            margin-bottom: 5mm;
-        }
-
-        .back-cover-subtitle {
-            font-size: 12px;
-            font-weight: 400;
-            opacity: 0.7;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .back-cover-divider {
-            width: 60px;
-            height: 1px;
-            background: rgba(255,255,255,0.3);
-            margin: 8mm auto;
-        }
-
-        .back-cover-contact {
-            font-size: 10px;
-            opacity: 0.6;
-            margin-top: 10mm;
-        }
-
-        /* Empty State */
         .no-products {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
+            text-align: center;
+            padding-top: 100mm;
             font-size: 18px;
             color: #6c757d;
+        }
+
+        /* Placeholder for missing images */
+        .no-img {
+            color: #cccccc;
+            font-size: 11px;
+            text-align: center;
+            padding-top: 24mm;
         }
     </style>
 </head>
 <body>
     {% if products %}
-        <!-- Cover Page -->
+        <!-- Cover -->
         <div class="pdf-page cover-page">
             {% if cover_url %}
                 <img src="{{ cover_url }}" class="cover-image" alt="Portada">
                 <div class="cover-overlay"></div>
-                <div class="cover-content">
-                    <div class="cover-brand">Colección Exclusiva</div>
-                    <h1 class="cover-title">{{ category_name }}</h1>
-                    <div class="cover-divider"></div>
-                    <p class="cover-subtitle">Catálogo de Productos</p>
-                    <div class="cover-year">2024</div>
-                </div>
-            {% else %}
-                <div class="cover-content">
-                    <div class="cover-brand">Colección Exclusiva</div>
-                    <h1 class="cover-title">{{ category_name }}</h1>
-                    <div class="cover-divider"></div>
-                    <p class="cover-subtitle">Catálogo de Productos</p>
-                    <div class="cover-year">2024</div>
-                </div>
             {% endif %}
+            <div class="cover-content">
+                <div class="cover-brand">Colección Exclusiva</div>
+                <h1 class="cover-title">{{ category_name }}</h1>
+                <div class="cover-divider"></div>
+                <p class="cover-subtitle">Catálogo de Productos</p>
+                <div class="cover-year">2024</div>
+            </div>
         </div>
 
-        <!-- Product Pages - Cascade layout (3 per page) -->
-        {% for page_products in products|batch(3) %}
+        <!-- Product Pages -->
+        {% set global_index = namespace(value=0) %}
+        {% for page_products in products|batch(8) %}
             <div class="pdf-page product-page">
                 <!-- Header -->
                 <div class="page-header">
-                    <div class="header-logo">✦ CATÁLOGO</div>
-                    <div class="header-category">{{ category_name }}</div>
+                    <div class="header-inner">
+                        <div class="header-logo">CATÁLOGO</div>
+                        <div class="header-cat">{{ category_name }}</div>
+                    </div>
                 </div>
 
-                <!-- Products Cascade -->
-                <div class="products-container">
-                    {% for product in page_products %}
-                        <div class="product-card">
-                            <div class="product-image-container">
-                                <span class="product-badge">#{{ loop.index + (loop.index0 // 3) * 3 }}</span>
-                                {% if product.image_url %}
-                                    <img src="{{ product.image_url }}" class="product-image" alt="{{ product.title }}">
-                                {% else %}
-                                    <div style="color: #adb5bd; font-size: 12px;">Sin imagen</div>
+                <!-- Products Grid -->
+                <div class="products-area">
+                    <table class="grid-table">
+                        {% for row_products in page_products|batch(2) %}
+                            <tr>
+                                {% for product in row_products %}
+                                    {% set global_index.value = global_index.value + 1 %}
+                                    <td>
+                                        <div class="card">
+                                            <!-- Imagen cuadrada izquierda -->
+                                            <div class="card-img-cell">
+                                                <div class="card-img-box">
+                                                    {% if product.image_url %}
+                                                        <img src="{{ product.image_url }}" alt="{{ product.title }}">
+                                                    {% endif %}
+                                                    <div class="img-notch"></div>
+                                                </div>
+                                            </div>
+                                            <!-- Texto derecha -->
+                                            <div class="card-body">
+                                                <div class="card-title">{{ product.title }}</div>
+                                                {% if product.description %}
+                                                    <div class="card-desc">{{ product.description }}</div>
+                                                {% endif %}
+                                                {% if product.width or product.height or product.depth %}
+                                                    <div class="card-dims">
+                                                        {% if product.width %}
+                                                            <span class="dim-row"><span class="dim-label">Ancho</span><span class="dim-value">{{ product.width }} cm</span></span>
+                                                        {% endif %}
+                                                        {% if product.height %}
+                                                            <span class="dim-row"><span class="dim-label">Alto</span><span class="dim-value">{{ product.height }} cm</span></span>
+                                                        {% endif %}
+                                                        {% if product.depth %}
+                                                            <span class="dim-row"><span class="dim-label">Prof.</span><span class="dim-value">{{ product.depth }} cm</span></span>
+                                                        {% endif %}
+                                                    </div>
+                                                {% endif %}
+                                                <div><span class="sku-pill">#{{ global_index.value }}</span></div>
+                                                <div class="card-price">${{ "%.0f"|format(product.price|float) }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                {% endfor %}
+                                {% if row_products|length < 2 %}
+                                    <td></td>
                                 {% endif %}
-                            </div>
-                            <div class="product-details">
-                                <h3 class="product-title">{{ product.title }}</h3>
-                                <div class="price-section">
-                                    <span class="product-price">${{ "%.2f"|format(product.price|float) }}</span>
-                                </div>
-                                <div class="info-section">
-                                    {% if product.width %}
-                                        <div class="info-item">
-                                            <span class="info-label">Ancho</span>
-                                            <span class="info-value">{{ product.width }}mm</span>
-                                        </div>
-                                    {% endif %}
-                                    {% if product.height %}
-                                        <div class="info-item">
-                                            <span class="info-label">Alto</span>
-                                            <span class="info-value">{{ product.height }}mm</span>
-                                        </div>
-                                    {% endif %}
-                                    {% if product.depth %}
-                                        <div class="info-item">
-                                            <span class="info-label">Prof.</span>
-                                            <span class="info-value">{{ product.depth }}mm</span>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </table>
                 </div>
 
                 <!-- Footer -->
                 <div class="page-footer">
-                    <div class="footer-text">{{ category_name }} · Colección 2024</div>
-                    <div class="page-number">{{ loop.index }}</div>
+                    <div class="footer-inner">
+                        <div class="footer-text">{{ category_name }} · Colección 2024</div>
+                        <div class="page-num">{{ loop.index }}</div>
+                    </div>
                 </div>
             </div>
         {% endfor %}
