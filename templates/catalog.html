@@ -214,7 +214,7 @@
         /* Imagen cuadrada 44x44mm */
         .card-img-box {
             width: 44mm;
-            height: 44mm;
+            height: 38mm;
             background: #c5bdb3;
             border-top-left-radius: 14px;
             overflow: hidden;
@@ -231,6 +231,25 @@
             display: block;
         }
 
+        /* Identificador sobre la imagen */
+        .img-id-badge {
+            position: absolute;
+            bottom: 6px;
+            left: 6px;
+            background: #ffffff;
+            color: #333333;
+            font-size: 6.5px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            -webkit-border-radius: 12px;
+            border-radius: 12px;
+            box-shadow: 0 0 0 1px #999999;
+            -webkit-box-shadow: 0 0 0 1px #999999;
+            z-index: 3;
+        }
+
         /* Esquina cóncava inferior derecha */
         .img-notch {
             position: absolute;
@@ -243,11 +262,43 @@
             z-index: 2;
         }
 
+        /* Colores disponibles */
+        .color-swatches {
+            display: table;
+            margin: 2mm auto 0;
+            border-collapse: collapse;
+        }
+
+        .color-swatches td {
+            width: 10mm;
+            padding: 0 1mm;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        .swatch {
+            display: block;
+            width: 5mm;
+            height: 5mm;
+            border-radius: 50%;
+            -webkit-border-radius: 50%;
+            margin: 0 auto;
+        }
+
+        .swatch-label {
+            display: block;
+            font-size: 5px;
+            color: #777;
+            text-align: center;
+            margin-top: 0.8mm;
+            letter-spacing: 0;
+        }
+
         /* Texto derecha */
         .card-body {
             display: table-cell;
             vertical-align: top;
-            padding: 0 1mm 0 4mm;
+            padding: 2mm 2mm 2mm 4mm;
         }
 
         .card-title {
@@ -444,8 +495,32 @@
                                                     {% if product.image_url %}
                                                         <img src="{{ product.image_url }}" alt="{{ product.title }}">
                                                     {% endif %}
+                                                    {% if product.product_id %}
+                                                        <div class="img-id-badge">{{ product.product_id }}</div>
+                                                    {% endif %}
                                                     <div class="img-notch"></div>
                                                 </div>
+                                                <!-- Colores disponibles -->
+                                                <table class="color-swatches">
+                                                    <tr>
+                                                        <td>
+                                                            <div class="swatch" style="background:#8B6340;"></div>
+                                                            <span class="swatch-label">C. Claro</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="swatch" style="background:#3B1F0A;"></div>
+                                                            <span class="swatch-label">C. Oscuro</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="swatch" style="background:#7B0D1E;"></div>
+                                                            <span class="swatch-label">Cerezo</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="swatch" style="background:#E8E8E8; -webkit-box-shadow: 0 0 0 1px #bbb; box-shadow: 0 0 0 1px #bbb;"></div>
+                                                            <span class="swatch-label">Blanco</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
                                             </div>
                                             <!-- Texto derecha -->
                                             <div class="card-body">
@@ -469,7 +544,6 @@
                                                         {% endif %}
                                                     </div>
                                                 {% endif %}
-                                                <div><span class="sku-pill">#{{ global_index.value }}{% if product.product_id %} · {{ product.product_id }}{% endif %}</span></div>
                                                 <div class="card-price">${{ "%.2f"|format(product.price|float) }}</div>
                                                 <div class="card-price-dozen">
                                                     Precio docena: <b>${{ "%.2f"|format(product.price_dozen_unit|float) }}</b>
