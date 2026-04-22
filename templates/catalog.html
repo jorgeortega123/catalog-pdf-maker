@@ -34,7 +34,7 @@
 
         /* ==================== COVER ==================== */
         .cover-page {
-            background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: #0a0a0a;
             text-align: center;
             position: relative;
         }
@@ -55,63 +55,95 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(180deg, rgba(26,26,46,0.75) 0%, rgba(15,52,96,0.9) 100%);
+            background: linear-gradient(170deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.82) 100%);
             z-index: 1;
         }
 
         .cover-content {
-            position: relative;
+            position: absolute;
             z-index: 2;
             color: white;
-            padding: 20mm;
-            display: table;
-            margin: 0 auto;
+            top: 0; left: 0; right: 0; bottom: 0;
+            padding: 55mm 15mm 20mm;
+            text-align: center;
         }
 
         .cover-brand {
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 4px;
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 10px;
             text-transform: uppercase;
-            opacity: 0.7;
-            margin-bottom: 20mm;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 10mm;
         }
 
-        .cover-title {
+        .cover-jandrea {
             font-family: 'Playfair Display', Georgia, serif;
-            font-size: 52px;
-            font-weight: 700;
-            margin-bottom: 8mm;
-            line-height: 1.1;
-        }
-
-        .cover-subtitle {
-            font-size: 16px;
-            font-weight: 300;
-            opacity: 0.85;
+            font-size: 130px;
+            font-weight: 800;
+            color: #ffffff;
             letter-spacing: 2px;
-            text-transform: uppercase;
+            line-height: 0.95;
+            margin-bottom: 8mm;
         }
 
         .cover-divider {
-            width: 80px;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #e94560, transparent);
-            margin: 10mm auto;
+            width: 100px;
+            height: 3px;
+            background: rgba(255,255,255,0.5);
+            margin: 0 auto 10mm;
+        }
+
+        .cover-title {
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 38px;
+            font-weight: 300;
+            letter-spacing: 12px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.95);
+            margin-bottom: 18mm;
+            line-height: 1.3;
+        }
+
+        .cover-badge {
+            display: inline-block;
+            border: 1px solid rgba(255,255,255,0.45);
+            border-radius: 40px;
+            padding: 3mm 12mm;
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 3px;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 6mm;
         }
 
         .cover-year {
-            font-size: 12px;
-            font-weight: 500;
-            letter-spacing: 3px;
-            opacity: 0.5;
-            margin-top: 20mm;
+            position: absolute;
+            bottom: 12mm;
+            left: 0;
+            right: 0;
+            font-size: 11px;
+            font-weight: 400;
+            letter-spacing: 5px;
+            color: rgba(255,255,255,0.35);
+            text-transform: uppercase;
         }
 
         /* ==================== PRODUCT PAGE ==================== */
         .product-page {
             position: relative;
-            background: #f0ebe4;
+            background: #ffffff;
+        }
+
+        .page-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
         }
 
         /* Header */
@@ -120,8 +152,8 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 12mm;
-            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            height: 18mm;
+            background: transparent;
             z-index: 20;
         }
 
@@ -133,24 +165,13 @@
 
         .header-logo {
             display: table-cell;
-            padding: 0 10mm;
-            text-align: left;
-            vertical-align: middle;
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 13px;
-            font-weight: 700;
-            color: white;
-            letter-spacing: 1px;
-        }
-
-        .header-cat {
-            display: table-cell;
-            padding: 0 10mm;
-            text-align: right;
-            vertical-align: middle;
-            font-size: 8px;
-            font-weight: 500;
-            color: rgba(255,255,255,0.7);
+            padding: 6mm 10mm 0;
+            text-align: center;
+            vertical-align: top;
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            color: #333333;
             letter-spacing: 2px;
             text-transform: uppercase;
         }
@@ -159,7 +180,8 @@
         .products-area {
             position: relative;
             z-index: 10;
-            padding: 14mm 7mm 10mm;
+            padding: 30mm 7mm 10mm;
+            background: transparent;
         }
 
         /* Grid Table — 2 columnas x 4 filas */
@@ -180,7 +202,7 @@
             display: table;
             width: 100%;
             table-layout: fixed;
-            background: #f0ebe4;
+            background: #ffffff;
         }
 
         .card-img-cell {
@@ -216,8 +238,9 @@
             right: 0;
             width: 18px;
             height: 18px;
-            background: #f0ebe4;
+            background: #ffffff;
             border-top-left-radius: 18px;
+            z-index: 2;
         }
 
         /* Texto derecha */
@@ -233,17 +256,26 @@
             font-weight: 800;
             color: #1a1a1a;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
-            margin-bottom: 2mm;
-            line-height: 1.25;
+            letter-spacing: 0.5px;
+            margin-bottom: 2.5mm;
+            line-height: 1.4;
         }
 
         .card-desc {
             font-size: 8px;
             font-weight: 400;
             color: #4a4640;
-            line-height: 1.5;
+            line-height: 1.7;
+            letter-spacing: 0.1px;
             margin-bottom: 2.5mm;
+        }
+
+        .card-material {
+            font-size: 7.5px;
+            font-weight: 600;
+            color: #666666;
+            margin-bottom: 2mm;
+            text-transform: capitalize;
         }
 
         .card-dims {
@@ -253,7 +285,7 @@
         .dim-row {
             display: block;
             font-size: 7.5px;
-            margin-bottom: 0.8mm;
+            margin-bottom: 1.5mm;
             line-height: 1.3;
         }
 
@@ -261,11 +293,13 @@
             font-weight: 700;
             color: #888888;
             margin-right: 1.5mm;
+            letter-spacing: 0.2px;
         }
 
         .dim-value {
             font-weight: 600;
             color: #333333;
+            letter-spacing: 0.2px;
         }
 
         .sku-pill {
@@ -285,6 +319,18 @@
             font-weight: 800;
             color: #1a1a1a;
             line-height: 1;
+            margin-bottom: 1.5mm;
+        }
+
+        .card-price-dozen {
+            font-size: 7.5px;
+            color: #555555;
+            line-height: 1.5;
+        }
+
+        .card-price-dozen b {
+            font-weight: 700;
+            color: #222222;
         }
 
         /* Footer */
@@ -294,8 +340,7 @@
             left: 0;
             right: 0;
             height: 8mm;
-            background: #e8e2da;
-            border-top: 1px solid #d5cfc6;
+            background: transparent;
             z-index: 20;
         }
 
@@ -311,7 +356,7 @@
             text-align: left;
             vertical-align: middle;
             font-size: 8px;
-            color: #7a7068;
+            color: rgba(0,0,0,0.5);
         }
 
         .page-num {
@@ -322,7 +367,7 @@
             font-family: 'Playfair Display', Georgia, serif;
             font-size: 11px;
             font-weight: 600;
-            color: #3a3530;
+            color: rgba(0,0,0,0.6);
         }
 
         /* ==================== BACK COVER ==================== */
@@ -361,11 +406,12 @@
                 <div class="cover-overlay"></div>
             {% endif %}
             <div class="cover-content">
-                <div class="cover-brand">Colección Exclusiva</div>
-                <h1 class="cover-title">{{ category_name }}</h1>
+                <div class="cover-brand">Tienda Artesanal</div>
+                <div class="cover-jandrea">Jandrea</div>
                 <div class="cover-divider"></div>
-                <p class="cover-subtitle">Catálogo de Productos</p>
-                <div class="cover-year">2024</div>
+                <div class="cover-title">{{ category_name }}</div>
+                <div class="cover-badge">{{ products|length }} productos &nbsp;·&nbsp; Colección 2024</div>
+                <div class="cover-year">www.jandrea.com &nbsp;·&nbsp; 2024</div>
             </div>
         </div>
 
@@ -373,11 +419,13 @@
         {% set global_index = namespace(value=0) %}
         {% for page_products in products|batch(8) %}
             <div class="pdf-page product-page">
+                {% if background_url %}
+                    <img src="{{ background_url }}" class="page-bg" alt="">
+                {% endif %}
                 <!-- Header -->
                 <div class="page-header">
                     <div class="header-inner">
-                        <div class="header-logo">CATÁLOGO</div>
-                        <div class="header-cat">{{ category_name }}</div>
+                        <div class="header-logo">Catálogo &mdash; {{ category_name }}</div>
                     </div>
                 </div>
 
@@ -405,6 +453,9 @@
                                                 {% if product.description %}
                                                     <div class="card-desc">{{ product.description }}</div>
                                                 {% endif %}
+                                                {% if product.material %}
+                                                    <div class="card-material">Material: {{ product.material }}</div>
+                                                {% endif %}
                                                 {% if product.width or product.height or product.depth %}
                                                     <div class="card-dims">
                                                         {% if product.width %}
@@ -418,8 +469,11 @@
                                                         {% endif %}
                                                     </div>
                                                 {% endif %}
-                                                <div><span class="sku-pill">#{{ global_index.value }}</span></div>
-                                                <div class="card-price">${{ "%.0f"|format(product.price|float) }}</div>
+                                                <div><span class="sku-pill">#{{ global_index.value }}{% if product.product_id %} · {{ product.product_id }}{% endif %}</span></div>
+                                                <div class="card-price">${{ "%.2f"|format(product.price|float) }}</div>
+                                                <div class="card-price-dozen">
+                                                    Precio docena: <b>${{ "%.2f"|format(product.price_dozen_unit|float) }}</b>
+                                                </div>
                                             </div>
                                         </div>
                                     </td>

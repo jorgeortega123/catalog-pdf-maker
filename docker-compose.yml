@@ -1,0 +1,9 @@
+services:
+  pdf-maker:
+    build: .
+    container_name: pdf-maker
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1

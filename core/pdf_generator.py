@@ -57,22 +57,31 @@ class PDFGenerator:
         if not HAS_JINJA2:
             raise ImportError("Jinja2 is not installed. Install it with: pip install jinja2")
 
-        # Check if wkhtmltopdf is available
-        # Windows default installation path
-        wkhtmltopdf_path = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-        if not os.path.exists(wkhtmltopdf_path):
-            # Try alternate location
-            wkhtmltopdf_path = r'C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe'
+        # Detectar wkhtmltopdf según el sistema operativo
+        import platform
+        if platform.system() == "Windows":
+            candidates = [
+                r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe',
+                r'C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe',
+            ]
+            wkhtmltopdf_path = next((p for p in candidates if os.path.exists(p)), None)
+        else:
+            # Linux/Docker: usar el wrapper con Xvfb si existe, sino el binario directo
+            candidates = [
+                '/usr/local/bin/wkhtmltopdf-xvfb',
+                '/usr/bin/wkhtmltopdf',
+            ]
+            wkhtmltopdf_path = next((p for p in candidates if os.path.exists(p)), None)
 
-        if os.path.exists(wkhtmltopdf_path):
+        if wkhtmltopdf_path:
             config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
         else:
             try:
                 config = pdfkit.configuration()
             except:
                 raise RuntimeError(
-                    "wkhtmltopdf is not installed. "
-                    "Install it from: https://wkhtmltopdf.org/downloads.html"
+                    "wkhtmltopdf no encontrado. "
+                    "Instálalo desde: https://wkhtmltopdf.org/downloads.html"
                 )
 
         # Prepare product data for template
@@ -145,6 +154,7 @@ class PDFGenerator:
                 sizes_x = variant.get("sizes_x")
                 sizes_y = variant.get("sizes_y")
                 sizes_z = variant.get("sizes_z")
+                material = variant.get("material") or variant.get("material_type") or ""
             elif variants and hasattr(variants[0], 'price'):
                 variant = variants[0]
                 price = getattr(variant, 'price', 0)
@@ -152,10 +162,12 @@ class PDFGenerator:
                 sizes_x = getattr(variant, 'sizes_x', None)
                 sizes_y = getattr(variant, 'sizes_y', None)
                 sizes_z = getattr(variant, 'sizes_z', None)
+                material = getattr(variant, 'material', "") or ""
             else:
                 price = 0
                 images = []
                 sizes_x = sizes_y = sizes_z = None
+                material = ""
 
             # Get image URL
             image_url = None
@@ -167,8 +179,10 @@ class PDFGenerator:
 
             if isinstance(product, dict):
                 description = product.get("description", "") or product.get("body_html", "") or ""
+                product_id = product.get("identificador") or product.get("id", "")
             else:
                 description = getattr(product, 'description', "") or getattr(product, 'body_html', "") or ""
+                product_id = getattr(product, 'identificador', None) or getattr(product, 'id', "")
 
             # Strip HTML tags from description
             import re
@@ -176,14 +190,22 @@ class PDFGenerator:
             if len(description) > 75:
                 description = description[:72] + "..."
 
+            unit_price = float(price) if price else 0.0
+            dozen_total = unit_price * 9
+            dozen_unit = dozen_total / 12
+
             products_data.append({
                 'title': title,
-                'price': float(price) if price else 0.0,
+                'price': unit_price,
+                'price_dozen_total': dozen_total,
+                'price_dozen_unit': dozen_unit,
                 'image_url': image_url,
                 'width': sizes_x,
                 'height': sizes_y,
                 'depth': sizes_z,
                 'description': description,
+                'product_id': str(product_id) if product_id else "",
+                'material': str(material) if material else "",
             })
 
         return products_data
