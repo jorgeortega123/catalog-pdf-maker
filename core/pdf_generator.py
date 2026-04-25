@@ -4,7 +4,7 @@ Creates modern A4 PDF catalogs with HTML/CSS templates
 """
 import os
 from io import BytesIO
-from typing import List
+from typing import List, Optional
 import requests
 
 try:
@@ -18,6 +18,12 @@ try:
     HAS_JINJA2 = True
 except ImportError:
     HAS_JINJA2 = False
+
+try:
+    from PyPDF2 import PdfReader, PdfWriter
+    HAS_PYPDF2 = True
+except ImportError:
+    HAS_PYPDF2 = False
 
 from .models import PDFConfig
 
@@ -49,8 +55,8 @@ class PDFGenerator:
         else:
             self.env = None
 
-    def generate(self) -> bytes:
-        """Generate PDF and return as bytes"""
+    def generate(self, cover_pdf_bytes: Optional[bytes] = None, back_cover_pdf_bytes: Optional[bytes] = None) -> bytes:
+        """Generate PDF and return as bytes. Optionally merge with cover/back cover PDFs."""
         if not HAS_PDFKIT:
             raise ImportError("pdfkit is not installed. Install it with: pip install pdfkit")
 
@@ -87,19 +93,23 @@ class PDFGenerator:
         # Prepare product data for template
         products_data = self._prepare_products_data()
 
-        # Get image URLs
-        cover_url = self.config.images.cover_url if self.config.images else None
+        # Get background URL (cover/back cover come as uploaded PDFs)
         background_url = self.config.images.background_url if self.config.images else None
-        back_cover_url = self.config.images.back_cover_url if self.config.images else None
+
+        # Skip cover/back cover in HTML if PDFs are provided
+        skip_cover = cover_pdf_bytes is not None
+        skip_back_cover = back_cover_pdf_bytes is not None
 
         # Render template
         template = self.env.get_template('catalog.html')
         html_content = template.render(
             products=products_data,
             category_name=self.category_name,
-            cover_url=cover_url,
+            cover_url=None,
             background_url=background_url,
-            back_cover_url=back_cover_url
+            back_cover_url=None,
+            skip_cover=skip_cover,
+            skip_back_cover=skip_back_cover
         )
 
         # Convert HTML to PDF
@@ -116,9 +126,32 @@ class PDFGenerator:
             'quiet': '',
         }
 
-        pdf_bytes = pdfkit.from_string(html_content, False, options=pdf_options, configuration=config)
+        catalog_bytes = pdfkit.from_string(html_content, False, options=pdf_options, configuration=config)
 
-        return pdf_bytes
+        # If no cover/back cover PDFs to merge, return catalog as-is
+        if not cover_pdf_bytes and not back_cover_pdf_bytes:
+            return catalog_bytes
+
+        # Merge PDFs using PyPDF2
+        if not HAS_PYPDF2:
+            raise ImportError("PyPDF2 is not installed. Install it with: pip install PyPDF2")
+
+        writer = PdfWriter()
+
+        if cover_pdf_bytes:
+            for page in PdfReader(BytesIO(cover_pdf_bytes)).pages:
+                writer.add_page(page)
+
+        for page in PdfReader(BytesIO(catalog_bytes)).pages:
+            writer.add_page(page)
+
+        if back_cover_pdf_bytes:
+            for page in PdfReader(BytesIO(back_cover_pdf_bytes)).pages:
+                writer.add_page(page)
+
+        output = BytesIO()
+        writer.write(output)
+        return output.getvalue()
 
     def _prepare_products_data(self) -> List[dict]:
         """Prepare products data for template rendering"""

@@ -451,11 +451,8 @@
 <body>
     {% if products %}
         <!-- Cover -->
+        {% if not skip_cover %}
         <div class="pdf-page cover-page">
-            {% if cover_url %}
-                <img src="{{ cover_url }}" class="cover-image" alt="Portada">
-                <div class="cover-overlay"></div>
-            {% endif %}
             <div class="cover-content">
                 <div class="cover-brand">Tienda Artesanal</div>
                 <div class="cover-jandrea">Jandrea</div>
@@ -465,6 +462,7 @@
                 <div class="cover-year">www.jandrea.com &nbsp;·&nbsp; 2024</div>
             </div>
         </div>
+        {% endif %}
 
         <!-- Product Pages -->
         {% set global_index = namespace(value=0) %}
@@ -571,13 +569,10 @@
         {% endfor %}
 
         <!-- Back Cover -->
+        {% if not skip_back_cover %}
         <div class="pdf-page back-cover">
-            {% if back_cover_url %}
-                <img src="{{ back_cover_url }}" class="back-cover-image" alt="Contraportada">
-            {% elif cover_url %}
-                <img src="{{ cover_url }}" class="back-cover-image" alt="Contraportada">
-            {% endif %}
         </div>
+        {% endif %}
     {% else %}
         <div class="pdf-page">
             <div class="no-products">No hay productos para mostrar</div>

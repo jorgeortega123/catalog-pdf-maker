@@ -1,13 +1,14 @@
 """
 API routes for PDF Catalog Generator
 """
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
-from typing import List
+from typing import List, Optional
 import io
+import json
 import httpx
 
-from core.models import Category, Product, PDFConfig
+from core.models import Category, Product, PDFConfig, ProductOrder, ImagesConfig
 from core.pdf_generator import PDFGenerator, estimate_pdf_pages, validate_image_url
 from api.proxy import backend_proxy
 
@@ -117,9 +118,31 @@ async def estimate_pages(data: dict):
 
 
 @router.post("/generate-pdf")
-async def generate_pdf(config: PDFConfig):
-    """Generate PDF with given configuration"""
+async def generate_pdf(
+    categoryId: str = Form(...),
+    productsPerPage: int = Form(4),
+    backgroundUrl: str = Form(""),
+    products: str = Form("[]"),
+    cover_pdf: Optional[UploadFile] = File(None),
+    back_cover_pdf: Optional[UploadFile] = File(None),
+):
+    """Generate PDF with given configuration, optionally merging cover/back cover PDFs"""
     try:
+        # Parse products order from JSON string
+        try:
+            products_list = json.loads(products)
+        except json.JSONDecodeError:
+            products_list = []
+
+        # Build config
+        product_orders = [ProductOrder(**p) for p in products_list]
+        config = PDFConfig(
+            categoryId=categoryId,
+            productsPerPage=productsPerPage,
+            images=ImagesConfig(coverUrl="", backgroundUrl=backgroundUrl, backCoverUrl=""),
+            products=product_orders
+        )
+
         # Get category name
         categories = await backend_proxy.get_categories()
         category = next(
@@ -174,9 +197,16 @@ async def generate_pdf(config: PDFConfig):
                 detail=f"Too many products ({len(ordered_products)}). Maximum is 100."
             )
 
+        # Read uploaded PDFs
+        cover_pdf_bytes = await cover_pdf.read() if cover_pdf else None
+        back_cover_pdf_bytes = await back_cover_pdf.read() if back_cover_pdf else None
+
         # Generate PDF
         generator = PDFGenerator(config, ordered_products, category.title)
-        pdf_bytes = generator.generate()
+        pdf_bytes = generator.generate(
+            cover_pdf_bytes=cover_pdf_bytes,
+            back_cover_pdf_bytes=back_cover_pdf_bytes
+        )
 
         # Check PDF size
         pdf_size_mb = len(pdf_bytes) / (1024 * 1024)

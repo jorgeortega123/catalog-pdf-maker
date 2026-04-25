@@ -90,9 +90,9 @@ class Product(BaseModel):
 
 class ImagesConfig(BaseModel):
     """Images configuration for PDF"""
-    cover_url: str = Field(alias="coverUrl")
-    background_url: str = Field(alias="backgroundUrl")
-    back_cover_url: str = Field(alias="backCoverUrl")
+    cover_url: Optional[str] = Field(default="", alias="coverUrl")
+    background_url: Optional[str] = Field(default="", alias="backgroundUrl")
+    back_cover_url: Optional[str] = Field(default="", alias="backCoverUrl")
 
     class Config:
         populate_by_name = True

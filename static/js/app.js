@@ -29,16 +29,12 @@ class PDFCatalogApp {
     }
 
     loadFromStorage() {
-        // Load images from localStorage
-        const coverUrl = localStorage.getItem(this.storageKeys.coverUrl) || '';
+        // Load background URL from localStorage (cover/back cover are now file uploads)
         const backgroundUrl = localStorage.getItem(this.storageKeys.backgroundUrl) || '';
-        const backCoverUrl = localStorage.getItem(this.storageKeys.backCoverUrl) || '';
         const productsPerPage = localStorage.getItem(this.storageKeys.productsPerPage) || '4';
 
-        // Set input values
-        document.getElementById('cover-url').value = coverUrl;
+        // Set input value
         document.getElementById('background-url').value = backgroundUrl;
-        document.getElementById('back-cover-url').value = backCoverUrl;
 
         // Set products per page
         this.data.productsPerPage = parseInt(productsPerPage);
@@ -48,10 +44,8 @@ class PDFCatalogApp {
             opt.classList.toggle('selected', parseInt(opt.dataset.products) === this.data.productsPerPage);
         });
 
-        // Load previews for saved images
-        if (coverUrl) this.loadPreview('cover-url', coverUrl);
+        // Load preview for background
         if (backgroundUrl) this.loadPreview('background-url', backgroundUrl);
-        if (backCoverUrl) this.loadPreview('back-cover-url', backCoverUrl);
 
         // Update page estimate
         this.updatePageEstimate();
@@ -93,20 +87,28 @@ class PDFCatalogApp {
             if (card) this.selectCategory(card.dataset.id);
         });
 
-        // Image inputs with localStorage save
-        ['cover-url', 'background-url', 'back-cover-url'].forEach(id => {
+        // Background URL input with localStorage save
+        const bgInput = document.getElementById('background-url');
+        bgInput.value = localStorage.getItem(this.storageKeys.backgroundUrl) || '';
+        bgInput.addEventListener('input', () => {
+            const url = bgInput.value;
+            this.saveToStorage(this.storageKeys.backgroundUrl, url);
+            this.loadPreview('background-url', url);
+            this.updateGenerateButton();
+        });
+
+        // PDF file inputs (show filename in preview)
+        ['cover-pdf', 'back-cover-pdf'].forEach(id => {
             const input = document.getElementById(id);
-            const storageKey = this.storageKeys[id.replace('-', '_')];
-
-            // Load saved value on start
-            input.value = localStorage.getItem(storageKey) || '';
-
-            // Save on change and preview
-            input.addEventListener('input', () => {
-                const url = input.value;
-                this.saveToStorage(storageKey, url);
-                this.loadPreview(id, url);
-                this.updateGenerateButton();
+            input.addEventListener('change', () => {
+                const file = input.files[0];
+                const previewId = id.replace('-pdf', '-preview');
+                const preview = document.getElementById(previewId);
+                if (file) {
+                    preview.innerHTML = `<span style="color: var(--primary); font-size: 0.8rem;">📄 ${file.name}</span>`;
+                } else {
+                    preview.innerHTML = '';
+                }
             });
         });
 
@@ -371,20 +373,19 @@ class PDFCatalogApp {
     }
 
     async generatePDF() {
-        const images = {
-            coverUrl: document.getElementById('cover-url').value,
-            backgroundUrl: document.getElementById('background-url').value,
-            backCoverUrl: document.getElementById('back-cover-url').value
-        };
+        const backgroundUrl = document.getElementById('background-url').value;
+        const coverPdf = document.getElementById('cover-pdf').files[0];
+        const backCoverPdf = document.getElementById('back-cover-pdf').files[0];
 
-        const config = {
-            categoryId: this.data.selectedCategory,
-            productsPerPage: this.data.productsPerPage,
-            images: images,
-            products: this.data.productsOrder
-        };
+        const formData = new FormData();
+        formData.append('categoryId', this.data.selectedCategory);
+        formData.append('productsPerPage', this.data.productsPerPage);
+        formData.append('backgroundUrl', backgroundUrl);
+        formData.append('products', JSON.stringify(this.data.productsOrder));
+        if (coverPdf) formData.append('cover_pdf', coverPdf);
+        if (backCoverPdf) formData.append('back_cover_pdf', backCoverPdf);
 
-        this.showLoading('Generando PDF...', 'Procesando productos e imágenes');
+        this.showLoading('Generando PDF...', 'Procesando productos y portadas');
 
         try {
             this.updateProgress(20);
@@ -392,8 +393,7 @@ class PDFCatalogApp {
 
             const response = await fetch('/api/generate-pdf', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(config)
+                body: formData
             });
 
             this.updateProgress(60);
