@@ -224,7 +224,7 @@ class PDFGenerator:
                 description = description[:72] + "..."
 
             unit_price = float(price) if price else 0.0
-            dozen_total = unit_price * 9
+            dozen_total = unit_price * 10.2
             dozen_unit = dozen_total / 12
 
             products_data.append({
