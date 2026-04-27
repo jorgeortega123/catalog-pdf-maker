@@ -220,8 +220,8 @@ class PDFGenerator:
             # Strip HTML tags from description
             import re
             description = re.sub(r'<[^>]+>', '', description).strip()
-            if len(description) > 75:
-                description = description[:72] + "..."
+            if len(description) > 110:
+                description = description[:107] + "..."
 
             unit_price = float(price) if price else 0.0
             dozen_total = unit_price * 10.2
