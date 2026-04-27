@@ -7,8 +7,9 @@ class PDFCatalogApp {
             categories: [],
             products: [],
             selectedCategory: null,
-            productsPerPage: 4,  // Grid layout: 4 products per page (2x2)
-            productsOrder: []
+            productsPerPage: 4,
+            productsOrder: [],
+            originalOrder: []
         };
 
         // Storage keys
@@ -16,7 +17,9 @@ class PDFCatalogApp {
             coverUrl: 'pdf_cover_url',
             backgroundUrl: 'pdf_background_url',
             backCoverUrl: 'pdf_backcover_url',
-            productsPerPage: 'pdf_products_per_page'
+            productsPerPage: 'pdf_products_per_page',
+            productOrders: 'pdf_product_orders_',
+            categoryTitles: 'pdf_category_title_'
         };
 
         this.init();
@@ -29,25 +32,17 @@ class PDFCatalogApp {
     }
 
     loadFromStorage() {
-        // Load background URL from localStorage (cover/back cover are now file uploads)
         const backgroundUrl = localStorage.getItem(this.storageKeys.backgroundUrl) || '';
         const productsPerPage = localStorage.getItem(this.storageKeys.productsPerPage) || '4';
 
-        // Set input value
         document.getElementById('background-url').value = backgroundUrl;
-
-        // Set products per page
         this.data.productsPerPage = parseInt(productsPerPage);
 
-        // Update UI
         document.querySelectorAll('.layout-option-compact').forEach(opt => {
             opt.classList.toggle('selected', parseInt(opt.dataset.products) === this.data.productsPerPage);
         });
 
-        // Load preview for background
         if (backgroundUrl) this.loadPreview('background-url', backgroundUrl);
-
-        // Update page estimate
         this.updatePageEstimate();
     }
 
@@ -81,13 +76,11 @@ class PDFCatalogApp {
     }
 
     bindEvents() {
-        // Category selection
         document.getElementById('categories-grid').addEventListener('click', (e) => {
             const card = e.target.closest('.category-card-compact');
             if (card) this.selectCategory(card.dataset.id);
         });
 
-        // Background URL input with localStorage save
         const bgInput = document.getElementById('background-url');
         bgInput.value = localStorage.getItem(this.storageKeys.backgroundUrl) || '';
         bgInput.addEventListener('input', () => {
@@ -97,7 +90,6 @@ class PDFCatalogApp {
             this.updateGenerateButton();
         });
 
-        // PDF file inputs (show filename in preview)
         ['cover-pdf', 'back-cover-pdf'].forEach(id => {
             const input = document.getElementById(id);
             input.addEventListener('change', () => {
@@ -112,26 +104,34 @@ class PDFCatalogApp {
             });
         });
 
-        // Layout selection (products per page)
         document.querySelectorAll('.layout-option-compact').forEach(option => {
             option.addEventListener('click', () => this.selectProductsPerPage(option));
         });
 
-        // Product table actions
         document.getElementById('products-tbody').addEventListener('click', (e) => {
             if (e.target.closest('.btn-move-up')) this.moveProduct(e.target.closest('tr'), -1);
             if (e.target.closest('.btn-move-down')) this.moveProduct(e.target.closest('tr'), 1);
+            if (e.target.closest('.btn-reset-order')) this.resetOrder();
         });
 
-        // Generate button
         document.getElementById('generate-btn').addEventListener('click', () => this.generatePDF());
+
+        // Category title input
+        const titleInput = document.getElementById('category-title-input');
+        if (titleInput) {
+            titleInput.addEventListener('input', () => {
+                if (this.data.selectedCategory) {
+                    const key = this.storageKeys.categoryTitles + this.data.selectedCategory;
+                    this.saveToStorage(key, titleInput.value);
+                }
+            });
+        }
     }
 
     async loadCategories() {
         try {
             const response = await fetch('/api/categories');
             if (!response.ok) throw new Error('Error cargando categorías');
-
             const categories = await response.json();
             this.data.categories = categories;
             this.renderCategories();
@@ -153,8 +153,6 @@ class PDFCatalogApp {
 
     async selectCategory(categoryId) {
         try {
-            console.log('Loading products for category:', categoryId);
-
             document.querySelectorAll('.category-card-compact').forEach(card => {
                 card.classList.toggle('selected', card.dataset.id === categoryId);
             });
@@ -170,16 +168,49 @@ class PDFCatalogApp {
 
             const response = await fetch(`/api/products/${categoryId}`);
             if (!response.ok) throw new Error('Error cargando productos');
-
             const data = await response.json();
-            console.log('Products response:', data);
 
             this.data.products = data.products || [];
             this.data.selectedCategory = categoryId;
-            this.data.productsOrder = this.data.products.map((p, i) => ({
+
+            // Original order from API
+            const apiOrder = this.data.products.map((p, i) => ({
                 id: p.id,
                 position: i + 1
             }));
+            this.data.originalOrder = apiOrder.map(o => ({ ...o }));
+
+            // Check if saved order exists in localStorage
+            const savedKey = this.storageKeys.productOrders + categoryId;
+            const savedRaw = localStorage.getItem(savedKey);
+
+            if (savedRaw) {
+                try {
+                    const saved = JSON.parse(savedRaw);
+                    // Verify all product IDs still match
+                    const productIds = new Set(this.data.products.map(p => p.id));
+                    if (saved.every(o => productIds.has(o.id)) && saved.length === this.data.products.length) {
+                        this.data.productsOrder = saved;
+                    } else {
+                        this.data.productsOrder = apiOrder;
+                        localStorage.setItem(savedKey, JSON.stringify(apiOrder));
+                    }
+                } catch {
+                    this.data.productsOrder = apiOrder;
+                }
+            } else {
+                this.data.productsOrder = apiOrder;
+            }
+
+            // Load custom title
+            const titleInput = document.getElementById('category-title-input');
+            if (titleInput) {
+                const cat = this.data.categories.find(c =>
+                    c.categoryId === categoryId || c.id === categoryId
+                );
+                const savedTitle = localStorage.getItem(this.storageKeys.categoryTitles + categoryId) || '';
+                titleInput.value = savedTitle || (cat ? cat.title : '');
+            }
 
             if (this.data.products.length === 0) {
                 tbody.innerHTML = `
@@ -187,9 +218,6 @@ class PDFCatalogApp {
                         <td colspan="6" class="empty-state">
                             <div style="color: var(--warning);">
                                 ⚠️ Esta categoría no tiene productos disponibles
-                            </div>
-                            <div style="font-size: 0.85rem; margin-top: 0.5rem;">
-                                Por favor, selecciona otra categoría
                             </div>
                         </td>
                     </tr>
@@ -201,30 +229,19 @@ class PDFCatalogApp {
                 this.renderProductsTable();
                 this.updateGenerateButton();
             }
+
+            this.updateResetButton();
         } catch (error) {
-            console.error('Error loading products:', error);
             this.showError('Error: ' + error.message);
             document.querySelectorAll('.category-card-compact').forEach(card => card.classList.remove('selected'));
-
-            document.getElementById('products-tbody').innerHTML = `
-                <tr>
-                    <td colspan="6" class="empty-state" style="color: var(--danger);">
-                        Error al cargar productos: ${error.message}
-                    </td>
-                </tr>
-            `;
         }
     }
 
     selectProductsPerPage(option) {
         document.querySelectorAll('.layout-option-compact').forEach(o => o.classList.remove('selected'));
         option.classList.add('selected');
-
         this.data.productsPerPage = parseInt(option.dataset.products);
-
-        // Save to localStorage
         this.saveToStorage(this.storageKeys.productsPerPage, this.data.productsPerPage);
-
         this.updatePageEstimate();
     }
 
@@ -232,13 +249,7 @@ class PDFCatalogApp {
         const tbody = document.getElementById('products-tbody');
 
         if (!this.data.products.length) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="empty-state">
-                        No hay productos en esta categoría
-                    </td>
-                </tr>
-            `;
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No hay productos</td></tr>`;
             document.getElementById('total-products').textContent = '0 productos';
             return;
         }
@@ -289,7 +300,6 @@ class PDFCatalogApp {
         }).join('');
 
         document.getElementById('total-products').innerHTML = `<strong>${sortedProducts.length}</strong> productos`;
-
         this.setupDragAndDrop();
         this.updatePageEstimate();
     }
@@ -334,14 +344,23 @@ class PDFCatalogApp {
         const currentIndex = rows.indexOf(row);
         const newIndex = currentIndex + direction;
 
-        if (newIndex >= 0 && newIndex < rows.length) {
-            if (direction === -1) {
-                tbody.insertBefore(row, rows[newIndex]);
+        if (newIndex < 0 || newIndex >= rows.length) return;
+
+        // Swap positions in DOM
+        if (direction === -1) {
+            // Move up: insert before the row above
+            tbody.insertBefore(row, rows[newIndex]);
+        } else {
+            // Move down: insert after the row below
+            if (rows[newIndex].nextSibling) {
+                tbody.insertBefore(row, rows[newIndex].nextSibling);
             } else {
-                tbody.insertBefore(row, rows[newIndex + 1] || null);
+                tbody.appendChild(row);
             }
-            this.updateOrderFromTable();
         }
+
+        this.updateOrderFromTable();
+        this.renderProductsTable();
     }
 
     updateOrderFromTable() {
@@ -356,11 +375,56 @@ class PDFCatalogApp {
                 existing.position = index + 1;
             }
         });
+
+        // Save order to localStorage
+        if (this.data.selectedCategory) {
+            const key = this.storageKeys.productOrders + this.data.selectedCategory;
+            this.saveToStorage(key, JSON.stringify(this.data.productsOrder));
+        }
+
+        this.updateResetButton();
+    }
+
+    resetOrder() {
+        this.data.productsOrder = this.data.originalOrder.map(o => ({ ...o }));
+        if (this.data.selectedCategory) {
+            const key = this.storageKeys.productOrders + this.data.selectedCategory;
+            this.saveToStorage(key, JSON.stringify(this.data.productsOrder));
+        }
+        this.renderProductsTable();
+        this.updateResetButton();
+    }
+
+    updateResetButton() {
+        let resetBtn = document.getElementById('reset-order-btn');
+        const isDifferent = this._orderChanged();
+
+        if (isDifferent && !resetBtn) {
+            const header = document.querySelector('.products-header');
+            if (header) {
+                resetBtn = document.createElement('button');
+                resetBtn.id = 'reset-order-btn';
+                resetBtn.className = 'btn-reset-order';
+                resetBtn.textContent = 'Restaurar orden original';
+                resetBtn.style.cssText = 'margin-left:auto;padding:0.4rem 0.8rem;background:var(--warning);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:0.8rem;font-weight:600;';
+                header.appendChild(resetBtn);
+                resetBtn.addEventListener('click', () => this.resetOrder());
+            }
+        } else if (!isDifferent && resetBtn) {
+            resetBtn.remove();
+        }
+    }
+
+    _orderChanged() {
+        if (this.data.productsOrder.length !== this.data.originalOrder.length) return true;
+        return this.data.productsOrder.some((o, i) =>
+            o.id !== this.data.originalOrder[i].id || o.position !== this.data.originalOrder[i].position
+        );
     }
 
     async updatePageEstimate() {
         const productsPerPage = this.data.productsPerPage || 4;
-        const totalPages = Math.ceil(this.data.products.length / productsPerPage) + 2; // +2 for covers
+        const totalPages = Math.ceil(this.data.products.length / productsPerPage) + 2;
         document.getElementById('estimated-pages').innerHTML = `~<strong>${totalPages}</strong> páginas`;
     }
 
@@ -368,7 +432,6 @@ class PDFCatalogApp {
         const btn = document.getElementById('generate-btn');
         const hasCategory = !!this.data.selectedCategory;
         const hasProducts = this.data.products.length > 0;
-
         btn.disabled = !(hasCategory && hasProducts);
     }
 
@@ -376,12 +439,15 @@ class PDFCatalogApp {
         const backgroundUrl = document.getElementById('background-url').value;
         const coverPdf = document.getElementById('cover-pdf').files[0];
         const backCoverPdf = document.getElementById('back-cover-pdf').files[0];
+        const titleInput = document.getElementById('category-title-input');
+        const customTitle = titleInput ? titleInput.value : '';
 
         const formData = new FormData();
         formData.append('categoryId', this.data.selectedCategory);
         formData.append('productsPerPage', this.data.productsPerPage);
         formData.append('backgroundUrl', backgroundUrl);
         formData.append('products', JSON.stringify(this.data.productsOrder));
+        formData.append('categoryTitle', customTitle);
         if (coverPdf) formData.append('cover_pdf', coverPdf);
         if (backCoverPdf) formData.append('back_cover_pdf', backCoverPdf);
 
@@ -412,9 +478,9 @@ class PDFCatalogApp {
             const a = document.createElement('a');
             a.href = url;
 
-            const categoryName = this.data.categories.find(c =>
+            const categoryName = (customTitle || this.data.categories.find(c =>
                 c.categoryId === this.data.selectedCategory || c.id === this.data.selectedCategory
-            )?.title || 'catalogo';
+            )?.title || 'catalogo');
 
             a.download = `catalogo_${categoryName.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}.pdf`;
             document.body.appendChild(a);
@@ -456,10 +522,7 @@ class PDFCatalogApp {
         toast.textContent = message;
         toast.className = `toast-modern ${type}`;
         toast.style.display = 'flex';
-
-        setTimeout(() => {
-            toast.style.display = 'none';
-        }, 4000);
+        setTimeout(() => { toast.style.display = 'none'; }, 4000);
     }
 
     showError(message) {
@@ -471,7 +534,6 @@ class PDFCatalogApp {
     }
 }
 
-// Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     new PDFCatalogApp();
 });

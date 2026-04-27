@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     """Application settings"""
 
     # Backend API URL
-    backend_url: str = "https://jandrea-backend.llampukaq.workers.dev"
+    backend_url: str = "https://api.jandrea.art"
 
     # PDF Settings
     pdf_margin_mm: float = 15.0
@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     # PDF Generation
     max_products_warning: int = 100
     max_pdf_size_mb: int = 50
+
+    # Auth
+    email: str = "jandrea593ec@gmail.com"
+    password: str = ""
+    jwt_secret: str = "pdf_catalog_2026_secure_key_x9k2m"
 
     class Config:
         env_file = ".env"

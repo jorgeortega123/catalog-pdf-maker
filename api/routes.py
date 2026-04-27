@@ -123,6 +123,7 @@ async def generate_pdf(
     productsPerPage: int = Form(4),
     backgroundUrl: str = Form(""),
     products: str = Form("[]"),
+    categoryTitle: str = Form(""),
     cover_pdf: Optional[UploadFile] = File(None),
     back_cover_pdf: Optional[UploadFile] = File(None),
 ):
@@ -201,8 +202,9 @@ async def generate_pdf(
         cover_pdf_bytes = await cover_pdf.read() if cover_pdf else None
         back_cover_pdf_bytes = await back_cover_pdf.read() if back_cover_pdf else None
 
-        # Generate PDF
-        generator = PDFGenerator(config, ordered_products, category.title)
+        # Generate PDF (use custom title if provided)
+        display_title = categoryTitle.strip() if categoryTitle.strip() else category.title
+        generator = PDFGenerator(config, ordered_products, display_title)
         pdf_bytes = generator.generate(
             cover_pdf_bytes=cover_pdf_bytes,
             back_cover_pdf_bytes=back_cover_pdf_bytes
@@ -217,7 +219,7 @@ async def generate_pdf(
             )
 
         # Return PDF
-        filename = f"catalogo_{category.title.lower().replace(' ', '_')}.pdf"
+        filename = f"catalogo_{display_title.lower().replace(' ', '_')}.pdf"
         return StreamingResponse(
             io.BytesIO(pdf_bytes),
             media_type="application/pdf",
