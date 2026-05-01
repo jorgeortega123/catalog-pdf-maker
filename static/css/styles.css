@@ -383,8 +383,15 @@ body {
     border: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 1rem;
+}
+
+.generate-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
 }
 
 .btn-generate {

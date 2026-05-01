@@ -98,14 +98,6 @@ class PDFCatalogApp {
         // Generate
         document.getElementById('generate-btn').addEventListener('click', () => this.generatePDF());
 
-        // Custom title input
-        document.getElementById('category-title-input').addEventListener('input', (e) => {
-            if (this.data.selectedColeccion) {
-                localStorage.setItem(this.storageKeys.titles + 'col_' + this.data.selectedColeccion, e.target.value);
-            } else if (this.data.selectedCategory) {
-                localStorage.setItem(this.storageKeys.titles + this.data.selectedCategory, e.target.value);
-            }
-        });
     }
 
     // ── Categories ────────────────────────────────
@@ -173,10 +165,9 @@ class PDFCatalogApp {
                 this.data.currentOrderIds = [...this.data.originalOrderIds];
             }
 
-            // Load custom title
+            // Load title
             const cat = this.data.categories.find(c => c.categoryId === categoryId || c.id === categoryId);
-            const savedTitle = localStorage.getItem(this.storageKeys.titles + categoryId) || '';
-            document.getElementById('category-title-input').value = savedTitle || (cat ? cat.title : '');
+            document.getElementById('category-title-input').value = cat ? `Catálogo ${cat.title} - Jandrea` : '';
 
             this.renderProductsTable();
             this.updateResetButton();
@@ -263,8 +254,7 @@ class PDFCatalogApp {
                 this.data.currentOrderIds = [...this.data.originalOrderIds];
             }
 
-            const savedTitle = localStorage.getItem(this.storageKeys.titles + 'col_' + title) || '';
-            document.getElementById('category-title-input').value = savedTitle || title;
+            document.getElementById('category-title-input').value = `Catálogo ${title} - Jandrea`;
 
             this.renderProductsTable();
             this.updateResetButton();
@@ -488,10 +478,9 @@ class PDFCatalogApp {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            const name = customTitle || this.data.selectedColeccion || this.data.categories.find(c =>
-                c.categoryId === this.data.selectedCategory || c.id === this.data.selectedCategory
-            )?.title || 'catalogo';
-            a.download = `catalogo_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}.pdf`;
+            const name = customTitle || 'Catálogo';
+            const rand = Math.floor(Math.random() * 900) + 100;
+            a.download = `${name} - ${rand}.pdf`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

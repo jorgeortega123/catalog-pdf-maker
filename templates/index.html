@@ -16,10 +16,13 @@
 
         <!-- Generate Button -->
         <div class="generate-section">
-            <button id="generate-btn" class="btn-generate" disabled>
-                <span class="btn-icon">📥</span>
-                <span class="btn-text">Generar Catálogo PDF</span>
-            </button>
+            <div class="generate-row">
+                <input type="text" id="category-title-input" class="url-input" placeholder="Título del catálogo" style="flex:1;max-width:380px;">
+                <button id="generate-btn" class="btn-generate" disabled>
+                    <span class="btn-icon">📥</span>
+                    <span class="btn-text">Generar Catálogo PDF</span>
+                </button>
+            </div>
             <div id="validation-status" class="status-message"></div>
         </div>
 
@@ -41,10 +44,6 @@
                         <h2>📁 Categoría</h2>
                         <div id="categories-grid" class="categories-grid-compact">
                             <div class="loading">Cargando categorías...</div>
-                        </div>
-                        <div class="image-input-group" style="margin-top: 1rem;">
-                            <label>Título del catálogo</label>
-                            <input type="text" id="category-title-input" class="url-input" placeholder="Nombre personalizado para el PDF">
                         </div>
                     </section>
 
