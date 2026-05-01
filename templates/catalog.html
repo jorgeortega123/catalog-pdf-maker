@@ -137,8 +137,21 @@
         }
 
         {% if use_bg_pdf %}
+        html, body {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
         .product-page {
-            background: transparent;
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        .card {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        .card-body {
+            background: transparent !important;
+            background-color: transparent !important;
         }
         {% endif %}
 
