@@ -229,13 +229,19 @@ class PDFGenerator:
                 sizes_x = sizes_y = sizes_z = None
                 material = ""
 
-            # Get image URL
+            # Get image URL (usar segunda imagen, fallback a primera)
             image_url = None
-            if images:
-                if isinstance(images[0], dict):
-                    image_url = images[0].get("src")
+            if len(images) > 1:
+                img = images[1]
+            elif images:
+                img = images[0]
+            else:
+                img = None
+            if img:
+                if isinstance(img, dict):
+                    image_url = img.get("src")
                 else:
-                    image_url = getattr(images[0], 'src', None)
+                    image_url = getattr(img, 'src', None)
 
             if isinstance(product, dict):
                 description = product.get("description", "") or product.get("body_html", "") or ""
