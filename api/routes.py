@@ -24,6 +24,32 @@ async def get_categories():
         raise HTTPException(status_code=500, detail=f"Error fetching categories: {str(e)}")
 
 
+@router.get("/colecciones")
+async def get_colecciones():
+    """Get all collections"""
+    try:
+        return await backend_proxy.get_colecciones()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching collections: {str(e)}")
+
+
+@router.post("/colecciones/productos")
+async def get_coleccion_productos(data: dict):
+    """Get products by collection tag"""
+    title = data.get("title")
+    if not title:
+        raise HTTPException(status_code=400, detail="El campo 'title' es requerido")
+    try:
+        result = await backend_proxy.get_products_by_coleccion(title)
+        return {
+            "products": result["productos"],
+            "total": result["total"],
+            "hasProducts": result["total"] > 0
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching collection products: {str(e)}")
+
+
 @router.get("/products/{category_id}")
 async def get_products(category_id: str):
     """Get products for a specific category"""
@@ -119,10 +145,11 @@ async def estimate_pages(data: dict):
 
 @router.post("/generate-pdf")
 async def generate_pdf(
-    categoryId: str = Form(...),
+    categoryId: str = Form(""),
     productsPerPage: int = Form(4),
     products: str = Form("[]"),
     categoryTitle: str = Form(""),
+    productsData: str = Form(""),
     cover_pdf: Optional[UploadFile] = File(None),
     back_cover_pdf: Optional[UploadFile] = File(None),
     background_pdf: Optional[UploadFile] = File(None),
@@ -138,58 +165,65 @@ async def generate_pdf(
         # Build config
         product_orders = [ProductOrder(**p) for p in products_list]
         config = PDFConfig(
-            categoryId=categoryId,
+            categoryId=categoryId or "coleccion",
             productsPerPage=productsPerPage,
             images=ImagesConfig(coverUrl="", backgroundUrl="", backCoverUrl=""),
             products=product_orders
         )
 
-        # Get category name
-        categories = await backend_proxy.get_categories()
-        category = next(
-            (c for c in categories if c.category_id == config.category_id or c.id == config.category_id),
-            None
-        )
-
-        if not category:
-            raise HTTPException(status_code=404, detail="Category not found")
-
-        # Get all products and filter
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        # Determine products source: collection (productsData) or category
+        if productsData:
+            # Products sent directly from frontend (collection flow)
             try:
-                response = await client.get(
-                    f"{backend_proxy.base_url}/products/preview",
-                    params={"all": "true"}
-                )
-                response.raise_for_status()
-                data = response.json()
-                all_products = data.get("productos", [])
-            except httpx.ConnectError:
-                raise HTTPException(
-                    status_code=503,
-                    detail="No se puede conectar al servidor de productos. Verifica tu conexión a internet."
-                )
-            except httpx.TimeoutException:
-                raise HTTPException(
-                    status_code=504,
-                    detail="Tiempo de espera agotado. Intenta de nuevo."
-                )
+                ordered_products = json.loads(productsData)
+            except json.JSONDecodeError:
+                ordered_products = []
+            display_title = categoryTitle.strip() if categoryTitle.strip() else "Colección"
+        else:
+            # Category flow: fetch from backend
+            categories = await backend_proxy.get_categories()
+            category = next(
+                (c for c in categories if c.category_id == config.category_id or c.id == config.category_id),
+                None
+            )
 
-        # Filter by category and create product map
-        product_map = {p["id"]: p for p in all_products if p.get("categoryId") == category.id}
+            if not category:
+                raise HTTPException(status_code=404, detail="Category not found")
 
-        # Sort products by position
-        ordered_products = []
-        for prod_order in config.products:
-            if prod_order.id in product_map:
-                ordered_products.append(product_map[prod_order.id])
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                try:
+                    response = await client.get(
+                        f"{backend_proxy.base_url}/products/preview",
+                        params={"all": "true"}
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                    all_products = data.get("productos", [])
+                except httpx.ConnectError:
+                    raise HTTPException(
+                        status_code=503,
+                        detail="No se puede conectar al servidor de productos. Verifica tu conexión a internet."
+                    )
+                except httpx.TimeoutException:
+                    raise HTTPException(
+                        status_code=504,
+                        detail="Tiempo de espera agotado. Intenta de nuevo."
+                    )
+
+            product_map = {p["id"]: p for p in all_products if p.get("categoryId") == category.id}
+
+            ordered_products = []
+            for prod_order in config.products:
+                if prod_order.id in product_map:
+                    ordered_products.append(product_map[prod_order.id])
+
+            if not ordered_products:
+                ordered_products = list(product_map.values())
+
+            display_title = categoryTitle.strip() if categoryTitle.strip() else category.title
 
         if not ordered_products:
-            # Use all products for category if no order specified
-            ordered_products = list(product_map.values())
-
-        if not ordered_products:
-            raise HTTPException(status_code=404, detail="No products found for this category")
+            raise HTTPException(status_code=404, detail="No products found")
 
         # Check product count
         if len(ordered_products) > 100:
@@ -204,7 +238,6 @@ async def generate_pdf(
         background_pdf_bytes = await background_pdf.read() if background_pdf else None
 
         # Generate PDF (use custom title if provided)
-        display_title = categoryTitle.strip() if categoryTitle.strip() else category.title
         generator = PDFGenerator(config, ordered_products, display_title)
         pdf_bytes = generator.generate(
             cover_pdf_bytes=cover_pdf_bytes,

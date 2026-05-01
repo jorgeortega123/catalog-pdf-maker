@@ -33,6 +33,48 @@ class BackendProxy:
             data = response.json()
             return ProductsResponse(**data)
 
+    async def get_colecciones(self) -> List[dict]:
+        """Get all collections from backend"""
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            all_colecciones = []
+            page = 1
+            while True:
+                response = await client.get(
+                    f"{self.base_url}/colecciones/all",
+                    params={"page": page, "limit": 50}
+                )
+                response.raise_for_status()
+                data = response.json()
+                all_colecciones.extend(data.get("colecciones", []))
+                pagination = data.get("pagination", {})
+                if page >= pagination.get("totalPages", 1):
+                    break
+                page += 1
+            return all_colecciones
+
+    async def get_products_by_coleccion(self, title: str) -> dict:
+        """Get products by collection tag using getStaticProps"""
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            all_products = []
+            page = 1
+            while True:
+                response = await client.post(
+                    f"{self.base_url}/colecciones/by-tag/getStaticProps",
+                    json={"title": title, "page": page, "limit": 50}
+                )
+                response.raise_for_status()
+                data = response.json()
+                all_products.extend(data.get("productos", []))
+                pagination = data.get("pagination", {})
+                if page >= pagination.get("totalPages", 1):
+                    break
+                page += 1
+            return {
+                "productos": all_products,
+                "tag": data.get("tag", ""),
+                "total": len(all_products)
+            }
+
     async def validate_category(self, category_id: str) -> bool:
         """Check if a category exists and has products"""
         async with httpx.AsyncClient(timeout=self.timeout) as client:

@@ -5,8 +5,10 @@ class PDFCatalogApp {
     constructor() {
         this.data = {
             categories: [],
+            colecciones: [],
             products: [],
             selectedCategory: null,
+            selectedColeccion: null,
             productsPerPage: 4,
             currentOrderIds: [],    // array of product IDs in current display order
             originalOrderIds: []    // array of product IDs as they came from API
@@ -25,6 +27,7 @@ class PDFCatalogApp {
         this.loadSettings();
         this.bindEvents();
         this.loadCategories();
+        this.loadColecciones();
     }
 
     // ── Settings ──────────────────────────────────
@@ -44,7 +47,21 @@ class PDFCatalogApp {
         // Category click
         document.getElementById('categories-grid').addEventListener('click', (e) => {
             const card = e.target.closest('.category-card-compact');
-            if (card) this.selectCategory(card.dataset.id);
+            if (card) {
+                this.data.selectedColeccion = null;
+                document.querySelectorAll('.coleccion-chip').forEach(c => c.classList.remove('selected'));
+                this.selectCategory(card.dataset.id);
+            }
+        });
+
+        // Coleccion click
+        document.getElementById('colecciones-grid').addEventListener('click', (e) => {
+            const chip = e.target.closest('.coleccion-chip');
+            if (chip) {
+                this.data.selectedCategory = null;
+                document.querySelectorAll('.category-card-compact').forEach(c => c.classList.remove('selected'));
+                this.selectColeccion(chip.dataset.title);
+            }
         });
 
         // PDF file inputs - preview con PDF.js
@@ -83,7 +100,9 @@ class PDFCatalogApp {
 
         // Custom title input
         document.getElementById('category-title-input').addEventListener('input', (e) => {
-            if (this.data.selectedCategory) {
+            if (this.data.selectedColeccion) {
+                localStorage.setItem(this.storageKeys.titles + 'col_' + this.data.selectedColeccion, e.target.value);
+            } else if (this.data.selectedCategory) {
                 localStorage.setItem(this.storageKeys.titles + this.data.selectedCategory, e.target.value);
             }
         });
@@ -158,6 +177,94 @@ class PDFCatalogApp {
             const cat = this.data.categories.find(c => c.categoryId === categoryId || c.id === categoryId);
             const savedTitle = localStorage.getItem(this.storageKeys.titles + categoryId) || '';
             document.getElementById('category-title-input').value = savedTitle || (cat ? cat.title : '');
+
+            this.renderProductsTable();
+            this.updateResetButton();
+            this.updateGenerateButton();
+
+        } catch (error) {
+            this.showError(error.message);
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-state" style="color:var(--danger);">${error.message}</td></tr>`;
+        }
+    }
+
+    // ── Colecciones ───────────────────────────────
+
+    async loadColecciones() {
+        try {
+            const res = await fetch('/api/colecciones');
+            if (!res.ok) throw new Error();
+            this.data.colecciones = await res.json();
+            this.renderColecciones();
+        } catch {
+            document.getElementById('colecciones-grid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;color:var(--text-light);padding:1rem;">No se pudieron cargar las colecciones</div>';
+        }
+    }
+
+    renderColecciones() {
+        const grid = document.getElementById('colecciones-grid');
+        if (!this.data.colecciones.length) {
+            grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;text-align:center;color:var(--text-light);padding:1rem;">No hay colecciones</div>';
+            return;
+        }
+        grid.innerHTML = this.data.colecciones.map(col => {
+            const title = col.title || col.word || 'Sin título';
+            const word = col.word || '';
+            const type = col.type || '';
+            return `
+                <div class="coleccion-chip" data-title="${title}" data-word="${word}">
+                    <div class="coleccion-title">${title}</div>
+                    ${word ? `<div class="coleccion-type">Tag: ${word}</div>` : ''}
+                    ${type ? `<div class="coleccion-type">${type}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    async selectColeccion(title) {
+        document.querySelectorAll('.coleccion-chip').forEach(chip => {
+            chip.classList.toggle('selected', chip.dataset.title === title);
+        });
+
+        const tbody = document.getElementById('products-tbody');
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="loading">Cargando productos de colección...</div></td></tr>`;
+
+        try {
+            const res = await fetch('/api/colecciones/productos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            });
+            if (!res.ok) throw new Error('Error cargando productos de colección');
+            const data = await res.json();
+
+            this.data.products = data.products || [];
+            this.data.selectedColeccion = title;
+            this.data.selectedCategory = null;
+
+            this.data.originalOrderIds = this.data.products.map(p => p.id);
+
+            const savedKey = this.storageKeys.orders + 'col_' + title;
+            const savedRaw = localStorage.getItem(savedKey);
+            let useSaved = false;
+
+            if (savedRaw) {
+                try {
+                    const savedIds = JSON.parse(savedRaw);
+                    const productIds = new Set(this.data.products.map(p => p.id));
+                    if (savedIds.length === this.data.products.length && savedIds.every(id => productIds.has(id))) {
+                        this.data.currentOrderIds = savedIds;
+                        useSaved = true;
+                    }
+                } catch { /* ignore */ }
+            }
+
+            if (!useSaved) {
+                this.data.currentOrderIds = [...this.data.originalOrderIds];
+            }
+
+            const savedTitle = localStorage.getItem(this.storageKeys.titles + 'col_' + title) || '';
+            document.getElementById('category-title-input').value = savedTitle || title;
 
             this.renderProductsTable();
             this.updateResetButton();
@@ -282,11 +389,13 @@ class PDFCatalogApp {
     // ── Order Persistence ─────────────────────────
 
     saveOrder() {
-        if (this.data.selectedCategory) {
-            localStorage.setItem(
-                this.storageKeys.orders + this.data.selectedCategory,
-                JSON.stringify(this.data.currentOrderIds)
-            );
+        const key = this.data.selectedColeccion
+            ? this.storageKeys.orders + 'col_' + this.data.selectedColeccion
+            : this.data.selectedCategory
+                ? this.storageKeys.orders + this.data.selectedCategory
+                : null;
+        if (key) {
+            localStorage.setItem(key, JSON.stringify(this.data.currentOrderIds));
         }
     }
 
@@ -324,7 +433,8 @@ class PDFCatalogApp {
     // ── Generate PDF ──────────────────────────────
 
     updateGenerateButton() {
-        document.getElementById('generate-btn').disabled = !this.data.selectedCategory || !this.data.products.length;
+        const hasSelection = this.data.selectedCategory || this.data.selectedColeccion;
+        document.getElementById('generate-btn').disabled = !hasSelection || !this.data.products.length;
     }
 
     async updatePageEstimate() {
@@ -345,10 +455,15 @@ class PDFCatalogApp {
         }));
 
         const formData = new FormData();
-        formData.append('categoryId', this.data.selectedCategory);
+        formData.append('categoryId', this.data.selectedCategory || '');
         formData.append('productsPerPage', this.data.productsPerPage);
         formData.append('products', JSON.stringify(productsOrder));
         formData.append('categoryTitle', customTitle);
+        // Send full product data for collections (no categoryId to filter on backend)
+        if (this.data.selectedColeccion) {
+            const orderedProducts = this.data.currentOrderIds.map(id => this.getProductById(id)).filter(Boolean);
+            formData.append('productsData', JSON.stringify(orderedProducts));
+        }
         if (coverPdf) formData.append('cover_pdf', coverPdf);
         if (backCoverPdf) formData.append('back_cover_pdf', backCoverPdf);
         if (backgroundPdf) formData.append('background_pdf', backgroundPdf);
@@ -373,7 +488,7 @@ class PDFCatalogApp {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            const name = customTitle || this.data.categories.find(c =>
+            const name = customTitle || this.data.selectedColeccion || this.data.categories.find(c =>
                 c.categoryId === this.data.selectedCategory || c.id === this.data.selectedCategory
             )?.title || 'catalogo';
             a.download = `catalogo_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}.pdf`;
