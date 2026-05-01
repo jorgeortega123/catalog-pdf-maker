@@ -4,3 +4,4 @@ docs
 api/__pycache__
 core/__pycache__
 .env
+uploads/

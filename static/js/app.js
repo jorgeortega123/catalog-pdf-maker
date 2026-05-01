@@ -26,6 +26,7 @@ class PDFCatalogApp {
     init() {
         this.loadSettings();
         this.bindEvents();
+        this.loadSavedPdfs();
         this.loadCategories();
         this.loadColecciones();
     }
@@ -64,15 +65,21 @@ class PDFCatalogApp {
             }
         });
 
-        // PDF file inputs - preview con PDF.js
+        // PDF file inputs - preview con PDF.js + auto-save en servidor
         const self = this;
         ['cover-pdf', 'back-cover-pdf', 'background-pdf'].forEach(id => {
-            document.getElementById(id).addEventListener('change', function () {
+            document.getElementById(id).addEventListener('change', async function () {
                 const file = this.files[0];
                 const previewId = id === 'background-pdf' ? 'background-preview' : id.replace('-pdf', '-preview');
                 const preview = document.getElementById(previewId);
                 if (!file) { preview.innerHTML = ''; return; }
                 self.previewPDF(file, preview);
+                // Auto-save to server
+                const type = id === 'cover-pdf' ? 'cover' : id === 'back-cover-pdf' ? 'back_cover' : 'background';
+                const fd = new FormData();
+                fd.append('type', type);
+                fd.append('file', file);
+                try { await fetch('/api/save-pdf', { method: 'POST', body: fd }); } catch {}
             });
         });
 
@@ -497,6 +504,32 @@ class PDFCatalogApp {
     }
 
     // ── UI Helpers ────────────────────────────────
+
+    async loadSavedPdfs() {
+        try {
+            const res = await fetch('/api/saved-pdfs');
+            if (!res.ok) return;
+            const saved = await res.json();
+
+            const types = { cover: 'cover-preview', background: 'background-preview', back_cover: 'back-cover-preview' };
+            for (const [type, previewId] of Object.entries(types)) {
+                if (saved[type]?.exists) {
+                    const preview = document.getElementById(previewId);
+                    if (preview) {
+                        preview.innerHTML = '<div class="loading" style="padding:0.5rem;font-size:0.8rem;">Cargando...</div>';
+                        const pdfRes = await fetch(`/api/pdf-file/${type}`);
+                        if (pdfRes.ok) {
+                            const blob = await pdfRes.blob();
+                            const file = new File([blob], `${type}.pdf`, { type: 'application/pdf' });
+                            await this.previewPDF(file, preview);
+                        } else {
+                            preview.innerHTML = '';
+                        }
+                    }
+                }
+            }
+        } catch {}
+    }
 
     async previewPDF(file, previewEl) {
         previewEl.innerHTML = '<div class="loading" style="padding:0.5rem;font-size:0.8rem;">Cargando...</div>';

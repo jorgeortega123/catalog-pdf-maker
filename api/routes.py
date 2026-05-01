@@ -2,10 +2,11 @@
 API routes for PDF Catalog Generator
 """
 from fastapi import APIRouter, HTTPException, Response, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from typing import List, Optional
 import io
 import json
+import os
 import httpx
 
 from core.models import Category, Product, PDFConfig, ProductOrder, ImagesConfig
@@ -13,6 +14,47 @@ from core.pdf_generator import PDFGenerator, estimate_pdf_pages, validate_image_
 from api.proxy import backend_proxy
 
 router = APIRouter(prefix="/api")
+
+UPLOADS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+PDF_TYPES = {"cover": "cover.pdf", "background": "background.pdf", "back_cover": "back_cover.pdf"}
+
+
+@router.post("/save-pdf")
+async def save_pdf(type: str = Form(...), file: UploadFile = File(...)):
+    """Save a PDF file (cover/background/back_cover) on the server."""
+    if type not in PDF_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid type. Use: cover, background, back_cover")
+    path = os.path.join(UPLOADS_DIR, PDF_TYPES[type])
+    content = await file.read()
+    with open(path, "wb") as f:
+        f.write(content)
+    return {"ok": True, "type": type, "size": len(content)}
+
+
+@router.get("/saved-pdfs")
+async def get_saved_pdfs():
+    """Return info about which PDFs are saved on the server."""
+    result = {}
+    for key, filename in PDF_TYPES.items():
+        path = os.path.join(UPLOADS_DIR, filename)
+        if os.path.exists(path):
+            result[key] = {"exists": True, "size": os.path.getsize(path)}
+        else:
+            result[key] = {"exists": False}
+    return result
+
+
+@router.get("/pdf-file/{type}")
+async def get_pdf_file(type: str):
+    """Serve a saved PDF file for preview."""
+    if type not in PDF_TYPES:
+        raise HTTPException(status_code=404, detail="Not found")
+    path = os.path.join(UPLOADS_DIR, PDF_TYPES[type])
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(path, media_type="application/pdf")
 
 
 @router.get("/categories", response_model=List[Category])
@@ -232,10 +274,27 @@ async def generate_pdf(
                 detail=f"Too many products ({len(ordered_products)}). Maximum is 100."
             )
 
-        # Read uploaded PDFs
+        # Read uploaded PDFs (fallback to saved files)
         cover_pdf_bytes = await cover_pdf.read() if cover_pdf else None
         back_cover_pdf_bytes = await back_cover_pdf.read() if back_cover_pdf else None
         background_pdf_bytes = await background_pdf.read() if background_pdf else None
+
+        # If not uploaded, try reading saved files
+        if not cover_pdf_bytes:
+            path = os.path.join(UPLOADS_DIR, PDF_TYPES["cover"])
+            if os.path.exists(path):
+                with open(path, "rb") as f:
+                    cover_pdf_bytes = f.read()
+        if not back_cover_pdf_bytes:
+            path = os.path.join(UPLOADS_DIR, PDF_TYPES["back_cover"])
+            if os.path.exists(path):
+                with open(path, "rb") as f:
+                    back_cover_pdf_bytes = f.read()
+        if not background_pdf_bytes:
+            path = os.path.join(UPLOADS_DIR, PDF_TYPES["background"])
+            if os.path.exists(path):
+                with open(path, "rb") as f:
+                    background_pdf_bytes = f.read()
 
         # Generate PDF (use custom title if provided)
         generator = PDFGenerator(config, ordered_products, display_title)
