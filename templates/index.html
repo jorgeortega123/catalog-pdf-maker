@@ -28,8 +28,28 @@
 
         <!-- Main Content - Single Panel -->
         <main class="main-content">
+
+            <!-- Top: Portada y Fondo -->
+            <section class="panel-section" style="margin-bottom:1.5rem;">
+                <h2>🖼️ Portada y Fondo</h2>
+                <div class="portada-fondo-row">
+                    <div class="image-input-group">
+                        <label>Portada (PDF)</label>
+                        <input type="file" id="cover-pdf" accept=".pdf" class="file-input">
+                    </div>
+                    <div class="image-input-group">
+                        <label>Fondo de Páginas (PDF)</label>
+                        <input type="file" id="background-pdf" accept=".pdf" class="file-input">
+                    </div>
+                    <div class="image-input-group">
+                        <label>Contraportada (PDF)</label>
+                        <input type="file" id="back-cover-pdf" accept=".pdf" class="file-input">
+                    </div>
+                </div>
+            </section>
+
             <div class="panel-grid">
-                <!-- Left Column: Category & Images -->
+                <!-- Left Column: Category & Layout -->
                 <div class="panel-column">
                     <!-- Collections Selection -->
                     <section class="panel-section">
@@ -44,30 +64,6 @@
                         <h2>📁 Categoría</h2>
                         <div id="categories-grid" class="categories-grid-compact">
                             <div class="loading">Cargando categorías...</div>
-                        </div>
-                    </section>
-
-                    <!-- Images Configuration -->
-                    <section class="panel-section">
-                        <h2>🖼️ Portada y Fondo</h2>
-                        <div class="images-config-compact">
-                            <div class="image-input-group">
-                                <label>Portada (PDF)</label>
-                                <input type="file" id="cover-pdf" accept=".pdf" class="file-input">
-                                <div id="cover-preview" class="image-preview-small"></div>
-                            </div>
-
-                            <div class="image-input-group">
-                                <label>Fondo de Páginas (PDF)</label>
-                                <input type="file" id="background-pdf" accept=".pdf" class="file-input">
-                                <div id="background-preview" class="image-preview-small"></div>
-                            </div>
-
-                            <div class="image-input-group">
-                                <label>Contraportada (PDF)</label>
-                                <input type="file" id="back-cover-pdf" accept=".pdf" class="file-input">
-                                <div id="back-cover-preview" class="image-preview-small"></div>
-                            </div>
                         </div>
                     </section>
 
@@ -95,7 +91,7 @@
                     </section>
                 </div>
 
-                <!-- Right Column: Products Table -->
+                <!-- Middle Column: Products Table -->
                 <div class="panel-column panel-column-wide">
                     <section class="panel-section panel-section-full">
                         <div class="products-header">
@@ -127,6 +123,22 @@
                                 </tbody>
                             </table>
                         </div>
+                    </section>
+                </div>
+
+                <!-- Right Column: PDF Previews -->
+                <div class="panel-column panel-column-preview">
+                    <section class="panel-section">
+                        <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:0.75rem;color:var(--text-light);">Portada</h3>
+                        <div id="cover-preview" class="image-preview-small"></div>
+                    </section>
+                    <section class="panel-section">
+                        <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:0.75rem;color:var(--text-light);">Fondo</h3>
+                        <div id="background-preview" class="image-preview-small"></div>
+                    </section>
+                    <section class="panel-section">
+                        <h3 style="font-size:0.9rem;font-weight:600;margin-bottom:0.75rem;color:var(--text-light);">Contraportada</h3>
+                        <div id="back-cover-preview" class="image-preview-small"></div>
                     </section>
                 </div>
             </div>
