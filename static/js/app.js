@@ -13,7 +13,6 @@ class PDFCatalogApp {
         };
 
         this.storageKeys = {
-            backgroundUrl: 'pdf_background_url',
             productsPerPage: 'pdf_products_per_page',
             orders: 'pdf_order_',          // + categoryId
             titles: 'pdf_title_'           // + categoryId
@@ -31,17 +30,12 @@ class PDFCatalogApp {
     // ── Settings ──────────────────────────────────
 
     loadSettings() {
-        const bg = localStorage.getItem(this.storageKeys.backgroundUrl) || '';
         const ppp = localStorage.getItem(this.storageKeys.productsPerPage) || '4';
-
-        document.getElementById('background-url').value = bg;
         this.data.productsPerPage = parseInt(ppp);
 
         document.querySelectorAll('.layout-option-compact').forEach(opt => {
             opt.classList.toggle('selected', parseInt(opt.dataset.products) === this.data.productsPerPage);
         });
-
-        if (bg) this.loadPreview('background-url', bg);
     }
 
     // ── Events ────────────────────────────────────
@@ -53,20 +47,15 @@ class PDFCatalogApp {
             if (card) this.selectCategory(card.dataset.id);
         });
 
-        // Background URL
-        const bgInput = document.getElementById('background-url');
-        bgInput.addEventListener('input', () => {
-            const url = bgInput.value;
-            localStorage.setItem(this.storageKeys.backgroundUrl, url);
-            this.loadPreview('background-url', url);
-        });
-
-        // PDF file inputs
-        ['cover-pdf', 'back-cover-pdf'].forEach(id => {
+        // PDF file inputs - preview con PDF.js
+        const self = this;
+        ['cover-pdf', 'back-cover-pdf', 'background-pdf'].forEach(id => {
             document.getElementById(id).addEventListener('change', function () {
                 const file = this.files[0];
-                const preview = document.getElementById(id.replace('-pdf', '-preview'));
-                preview.innerHTML = file ? `<span style="color:var(--primary);font-size:0.8rem;">📄 ${file.name}</span>` : '';
+                const previewId = id === 'background-pdf' ? 'background-preview' : id.replace('-pdf', '-preview');
+                const preview = document.getElementById(previewId);
+                if (!file) { preview.innerHTML = ''; return; }
+                self.previewPDF(file, preview);
             });
         });
 
@@ -344,9 +333,9 @@ class PDFCatalogApp {
     }
 
     async generatePDF() {
-        const backgroundUrl = document.getElementById('background-url').value;
         const coverPdf = document.getElementById('cover-pdf').files[0];
         const backCoverPdf = document.getElementById('back-cover-pdf').files[0];
+        const backgroundPdf = document.getElementById('background-pdf').files[0];
         const customTitle = document.getElementById('category-title-input').value;
 
         // Build productsOrder from currentOrderIds
@@ -358,11 +347,11 @@ class PDFCatalogApp {
         const formData = new FormData();
         formData.append('categoryId', this.data.selectedCategory);
         formData.append('productsPerPage', this.data.productsPerPage);
-        formData.append('backgroundUrl', backgroundUrl);
         formData.append('products', JSON.stringify(productsOrder));
         formData.append('categoryTitle', customTitle);
         if (coverPdf) formData.append('cover_pdf', coverPdf);
         if (backCoverPdf) formData.append('back_cover_pdf', backCoverPdf);
+        if (backgroundPdf) formData.append('background_pdf', backgroundPdf);
 
         this.showLoading('Generando PDF...', 'Procesando productos y portadas');
 
@@ -405,16 +394,30 @@ class PDFCatalogApp {
 
     // ── UI Helpers ────────────────────────────────
 
-    loadPreview(inputId, url) {
-        const previewId = inputId.replace('-url', '-preview');
-        const preview = document.getElementById(previewId);
-        if (!url) { preview.innerHTML = ''; return; }
-        preview.innerHTML = '<div class="loading" style="padding:1rem;">...</div>';
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => { preview.innerHTML = `<img src="${url}" alt="Preview">`; };
-        img.onerror = () => { preview.innerHTML = '<span style="color:var(--danger);font-size:0.8rem;">No cargada</span>'; };
-        img.src = url;
+    async previewPDF(file, previewEl) {
+        previewEl.innerHTML = '<div class="loading" style="padding:0.5rem;font-size:0.8rem;">Cargando...</div>';
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            previewEl.innerHTML = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 0.3 });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                canvas.style.cssText = 'border:1px solid var(--border);border-radius:4px;display:block;';
+                const ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport }).promise;
+                previewEl.appendChild(canvas);
+            }
+            const info = document.createElement('div');
+            info.style.cssText = 'width:100%;text-align:center;font-size:0.75rem;color:var(--text-light);padding-top:4px;';
+            info.textContent = `${pdf.numPages} página${pdf.numPages > 1 ? 's' : ''}`;
+            previewEl.appendChild(info);
+        } catch (e) {
+            previewEl.innerHTML = '<span style="color:var(--danger);font-size:0.8rem;">Error al previsualizar</span>';
+        }
     }
 
     showLoading(title, message) {

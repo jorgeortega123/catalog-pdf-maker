@@ -121,11 +121,11 @@ async def estimate_pages(data: dict):
 async def generate_pdf(
     categoryId: str = Form(...),
     productsPerPage: int = Form(4),
-    backgroundUrl: str = Form(""),
     products: str = Form("[]"),
     categoryTitle: str = Form(""),
     cover_pdf: Optional[UploadFile] = File(None),
     back_cover_pdf: Optional[UploadFile] = File(None),
+    background_pdf: Optional[UploadFile] = File(None),
 ):
     """Generate PDF with given configuration, optionally merging cover/back cover PDFs"""
     try:
@@ -140,7 +140,7 @@ async def generate_pdf(
         config = PDFConfig(
             categoryId=categoryId,
             productsPerPage=productsPerPage,
-            images=ImagesConfig(coverUrl="", backgroundUrl=backgroundUrl, backCoverUrl=""),
+            images=ImagesConfig(coverUrl="", backgroundUrl="", backCoverUrl=""),
             products=product_orders
         )
 
@@ -201,13 +201,15 @@ async def generate_pdf(
         # Read uploaded PDFs
         cover_pdf_bytes = await cover_pdf.read() if cover_pdf else None
         back_cover_pdf_bytes = await back_cover_pdf.read() if back_cover_pdf else None
+        background_pdf_bytes = await background_pdf.read() if background_pdf else None
 
         # Generate PDF (use custom title if provided)
         display_title = categoryTitle.strip() if categoryTitle.strip() else category.title
         generator = PDFGenerator(config, ordered_products, display_title)
         pdf_bytes = generator.generate(
             cover_pdf_bytes=cover_pdf_bytes,
-            back_cover_pdf_bytes=back_cover_pdf_bytes
+            back_cover_pdf_bytes=back_cover_pdf_bytes,
+            background_pdf_bytes=background_pdf_bytes
         )
 
         # Check PDF size

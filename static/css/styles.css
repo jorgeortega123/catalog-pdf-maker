@@ -174,14 +174,18 @@ body {
 }
 
 .image-preview-small {
-    height: 100px;
+    min-height: 60px;
+    max-height: 220px;
     border: 2px dashed var(--border);
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 6px;
     background: var(--bg);
-    overflow: hidden;
+    overflow: auto;
 }
 
 .image-preview-small img {

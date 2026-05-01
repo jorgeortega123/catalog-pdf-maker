@@ -55,8 +55,8 @@ class PDFGenerator:
         else:
             self.env = None
 
-    def generate(self, cover_pdf_bytes: Optional[bytes] = None, back_cover_pdf_bytes: Optional[bytes] = None) -> bytes:
-        """Generate PDF and return as bytes. Optionally merge with cover/back cover PDFs."""
+    def generate(self, cover_pdf_bytes: Optional[bytes] = None, back_cover_pdf_bytes: Optional[bytes] = None, background_pdf_bytes: Optional[bytes] = None) -> bytes:
+        """Generate PDF and return as bytes. Optionally merge with cover/back cover PDFs and apply background PDF."""
         if not HAS_PDFKIT:
             raise ImportError("pdfkit is not installed. Install it with: pip install pdfkit")
 
@@ -100,16 +100,21 @@ class PDFGenerator:
         skip_cover = cover_pdf_bytes is not None
         skip_back_cover = back_cover_pdf_bytes is not None
 
+        # When background PDF is provided, don't use image background
+        use_bg_pdf = background_pdf_bytes is not None
+        effective_bg_url = None if use_bg_pdf else background_url
+
         # Render template
         template = self.env.get_template('catalog.html')
         html_content = template.render(
             products=products_data,
             category_name=self.category_name,
             cover_url=None,
-            background_url=background_url,
+            background_url=effective_bg_url,
             back_cover_url=None,
             skip_cover=skip_cover,
-            skip_back_cover=skip_back_cover
+            skip_back_cover=skip_back_cover,
+            use_bg_pdf=use_bg_pdf
         )
 
         # Convert HTML to PDF
@@ -127,6 +132,10 @@ class PDFGenerator:
         }
 
         catalog_bytes = pdfkit.from_string(html_content, False, options=pdf_options, configuration=config)
+
+        # Merge background PDF pages under catalog pages using PyPDF2
+        if background_pdf_bytes:
+            catalog_bytes = self._merge_background_pdf(catalog_bytes, background_pdf_bytes)
 
         # If no cover/back cover PDFs to merge, return catalog as-is
         if not cover_pdf_bytes and not back_cover_pdf_bytes:
@@ -148,6 +157,24 @@ class PDFGenerator:
         if back_cover_pdf_bytes:
             for page in PdfReader(BytesIO(back_cover_pdf_bytes)).pages:
                 writer.add_page(page)
+
+        output = BytesIO()
+        writer.write(output)
+        return output.getvalue()
+
+    def _merge_background_pdf(self, catalog_bytes: bytes, background_pdf_bytes: bytes) -> bytes:
+        """Merge background PDF pages under catalog pages using PyPDF2."""
+        catalog_reader = PdfReader(BytesIO(catalog_bytes))
+        bg_reader = PdfReader(BytesIO(background_pdf_bytes))
+        bg_count = len(bg_reader.pages)
+        writer = PdfWriter()
+
+        for i, catalog_page in enumerate(catalog_reader.pages):
+            bg_idx = i % bg_count
+            # Read a fresh copy of the background page (merge_page modifies in place)
+            bg_page = PdfReader(BytesIO(background_pdf_bytes)).pages[bg_idx]
+            bg_page.merge_page(catalog_page)
+            writer.add_page(bg_page)
 
         output = BytesIO()
         writer.write(output)

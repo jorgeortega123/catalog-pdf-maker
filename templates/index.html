@@ -51,8 +51,8 @@
                             </div>
 
                             <div class="image-input-group">
-                                <label>Fondo de Páginas</label>
-                                <input type="url" id="background-url" class="url-input" placeholder="https://...">
+                                <label>Fondo de Páginas (PDF)</label>
+                                <input type="file" id="background-pdf" accept=".pdf" class="file-input">
                                 <div id="background-preview" class="image-preview-small"></div>
                             </div>
 
@@ -141,6 +141,8 @@
     <!-- Toast Notification -->
     <div id="toast" class="toast-modern" style="display: none;"></div>
 
-    <script src="/static/js/app.js?v=2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+    <script src="/static/js/app.js?v=3"></script>
 </body>
 </html>
