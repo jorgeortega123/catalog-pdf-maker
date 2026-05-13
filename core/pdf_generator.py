@@ -3,6 +3,8 @@ PDF Generator using pdfkit + Jinja2
 Creates modern A4 PDF catalogs with HTML/CSS templates
 """
 import os
+import re
+import base64
 from io import BytesIO
 from typing import List, Optional
 import requests
@@ -24,6 +26,12 @@ try:
     HAS_PYPDF2 = True
 except ImportError:
     HAS_PYPDF2 = False
+
+try:
+    from PIL import Image, ImageFilter
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
 from .models import PDFConfig
 
@@ -180,6 +188,22 @@ class PDFGenerator:
         writer.write(output)
         return output.getvalue()
 
+    @staticmethod
+    def _create_blurred_data_url(image_url: str) -> str:
+        """Download image, blur it with Pillow, return as base64 data URL"""
+        if not HAS_PIL:
+            return image_url
+        try:
+            response = requests.get(image_url, timeout=15)
+            img = Image.open(BytesIO(response.content)).convert('RGB')
+            img = img.filter(ImageFilter.GaussianBlur(radius=12))
+            buffer = BytesIO()
+            img.save(buffer, format='JPEG', quality=50)
+            b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+            return f'data:image/jpeg;base64,{b64}'
+        except Exception:
+            return image_url
+
     def _prepare_products_data(self) -> List[dict]:
         """Prepare products data for template rendering"""
         def get_product_id(p):
@@ -251,7 +275,6 @@ class PDFGenerator:
                 product_id = getattr(product, 'identificador', None) or getattr(product, 'id', "")
 
             # Strip HTML tags from description
-            import re
             description = re.sub(r'<[^>]+>', '', description).strip()
             if len(description) > 110:
                 description = description[:107] + "..."
@@ -260,12 +283,16 @@ class PDFGenerator:
             dozen_total = unit_price * 10.2
             dozen_unit = dozen_total / 12
 
+            # Pre-generate blurred image for non-square backgrounds
+            blurred_url = self._create_blurred_data_url(image_url) if image_url else None
+
             products_data.append({
                 'title': title,
                 'price': unit_price,
                 'price_dozen_total': dozen_total,
                 'price_dozen_unit': dozen_unit,
                 'image_url': image_url,
+                'blurred_image_url': blurred_url,
                 'width': sizes_x,
                 'height': sizes_y,
                 'depth': sizes_z,

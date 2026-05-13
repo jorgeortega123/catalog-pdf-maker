@@ -199,7 +199,7 @@
         .products-area {
             position: relative;
             z-index: 10;
-            padding: 42mm 7mm 42mm;
+            padding: 20mm 5mm;
             background: transparent;
         }
 
@@ -226,14 +226,14 @@
 
         .card-img-cell {
             display: table-cell;
-            width: 44mm;
+            width: 48mm;
             vertical-align: top;
         }
 
-        /* Imagen cuadrada 44x44mm */
+        /* Imagen cuadrada 48x48mm */
         .card-img-box {
-            width: 44mm;
-            height: 44mm;
+            width: 48mm;
+            height: 48mm;
             background: #c5bdb3;
             border-top-left-radius: 14px;
             -webkit-border-top-left-radius: 14px;
@@ -241,16 +241,34 @@
             position: relative;
         }
 
-        .card-img-box img {
+        /* Fondo blur (ya viene blurred del servidor) */
+        .img-bg-blur {
+            position: absolute;
+            top: -2mm;
+            left: -2mm;
+            right: -2mm;
+            bottom: -2mm;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .img-bg-blur img {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Imagen principal — se adapta sin deformarse */
+        .img-main {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            display: block;
-            -webkit-border-top-left-radius: 14px;
-            border-top-left-radius: 14px;
+            background-size: contain;
+            -webkit-background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 1;
         }
 
         /* Identificador sobre la imagen */
@@ -513,7 +531,10 @@
                                             <div class="card-img-cell">
                                                 <div class="card-img-box">
                                                     {% if product.image_url %}
-                                                        <img src="{{ product.image_url }}" alt="{{ product.title }}">
+                                                        <div class="img-bg-blur">
+                                                            <img src="{{ product.blurred_image_url }}" alt="">
+                                                        </div>
+                                                        <div class="img-main" style="background-image: url('{{ product.image_url }}');"></div>
                                                     {% endif %}
                                                     {% if product.product_id %}
                                                         <div class="img-id-badge">{{ product.product_id }}</div>
