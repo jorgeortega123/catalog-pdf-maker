@@ -586,9 +586,11 @@
                                                     </div>
                                                 {% endif %}
                                                 <div class="card-price">${{ "%.2f"|format(product.price|float) }}</div>
+                                                {% if show_dozen_price %}
                                                 <div class="card-price-dozen">
                                                     Precio docena: <b>${{ "%.2f"|format(product.price_dozen_unit|float) }}</b>
                                                 </div>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </td>

@@ -18,6 +18,9 @@
         <div class="generate-section">
             <div class="generate-row">
                 <input type="text" id="category-title-input" class="url-input" placeholder="Título del catálogo" style="flex:1;max-width:380px;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;white-space:nowrap;">
+                    <input type="checkbox" id="show-dozen-price"> Mostrar precio docena
+                </label>
                 <button id="generate-btn" class="btn-generate" disabled>
                     <span class="btn-icon">📥</span>
                     <span class="btn-text">Generar Catálogo PDF</span>
@@ -110,13 +113,14 @@
                                         <th style="width: 60px;">Img</th>
                                         <th>Producto</th>
                                         <th style="width: 100px;">Precio</th>
+                                        <th class="th-dozen" style="width: 110px;">Precio Docena</th>
                                         <th style="width: 120px;">Medidas</th>
                                         <th style="width: 80px;">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="products-tbody">
                                     <tr>
-                                        <td colspan="6" class="empty-state">
+                                        <td colspan="7" class="empty-state">
                                             Selecciona una categoría para ver los productos
                                         </td>
                                     </tr>
@@ -162,6 +166,6 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
-    <script src="/static/js/app.js?v=3"></script>
+    <script src="/static/js/app.js?v=4"></script>
 </body>
 </html>

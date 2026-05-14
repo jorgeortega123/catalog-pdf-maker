@@ -192,6 +192,7 @@ async def generate_pdf(
     products: str = Form("[]"),
     categoryTitle: str = Form(""),
     productsData: str = Form(""),
+    showDozenPrice: str = Form("false"),
     cover_pdf: Optional[UploadFile] = File(None),
     back_cover_pdf: Optional[UploadFile] = File(None),
     background_pdf: Optional[UploadFile] = File(None),
@@ -297,7 +298,8 @@ async def generate_pdf(
                     background_pdf_bytes = f.read()
 
         # Generate PDF (use custom title if provided)
-        generator = PDFGenerator(config, ordered_products, display_title)
+        generator = PDFGenerator(config, ordered_products, display_title,
+                                show_dozen_price=showDozenPrice.lower() == 'true')
         pdf_bytes = generator.generate(
             cover_pdf_bytes=cover_pdf_bytes,
             back_cover_pdf_bytes=back_cover_pdf_bytes,

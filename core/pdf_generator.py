@@ -39,10 +39,12 @@ from .models import PDFConfig
 class PDFGenerator:
     """Generates A4 PDF catalogs using pdfkit + Jinja2 templates"""
 
-    def __init__(self, config: PDFConfig, products: List, category_name: str, template_dir: str = None):
+    def __init__(self, config: PDFConfig, products: List, category_name: str,
+                 template_dir: str = None, show_dozen_price: bool = False):
         self.config = config
         self.products = products
         self.category_name = category_name
+        self.show_dozen_price = show_dozen_price
 
         # Template directory (default to templates/ folder)
         if template_dir is None:
@@ -122,7 +124,8 @@ class PDFGenerator:
             back_cover_url=None,
             skip_cover=skip_cover,
             skip_back_cover=skip_back_cover,
-            use_bg_pdf=use_bg_pdf
+            use_bg_pdf=use_bg_pdf,
+            show_dozen_price=self.show_dozen_price
         )
 
         # Convert HTML to PDF
@@ -280,8 +283,19 @@ class PDFGenerator:
                 description = description[:107] + "..."
 
             unit_price = float(price) if price else 0.0
-            dozen_total = unit_price * 10.2
-            dozen_unit = dozen_total / 12
+
+            # Get precioDocena from variant if available
+            raw_dozen = None
+            if variants and isinstance(variants[0], dict):
+                raw_dozen = variants[0].get("precioDocena") or variants[0].get("precio_docena")
+            elif variants and hasattr(variants[0], 'precio_docena'):
+                raw_dozen = getattr(variants[0], 'precio_docena', None) or getattr(variants[0], 'precioDocena', None)
+
+            if raw_dozen and float(raw_dozen) > 0:
+                price_dozen_unit = float(raw_dozen)
+            else:
+                dozen_total = unit_price * 10.2
+                price_dozen_unit = dozen_total / 12
 
             # Pre-generate blurred image for non-square backgrounds
             blurred_url = self._create_blurred_data_url(image_url) if image_url else None
@@ -289,8 +303,7 @@ class PDFGenerator:
             products_data.append({
                 'title': title,
                 'price': unit_price,
-                'price_dozen_total': dozen_total,
-                'price_dozen_unit': dozen_unit,
+                'price_dozen_unit': price_dozen_unit,
                 'image_url': image_url,
                 'blurred_image_url': blurred_url,
                 'width': sizes_x,

@@ -10,6 +10,7 @@ class PDFCatalogApp {
             selectedCategory: null,
             selectedColeccion: null,
             productsPerPage: 4,
+            showDozenPrice: false,
             currentOrderIds: [],    // array of product IDs in current display order
             originalOrderIds: []    // array of product IDs as they came from API
         };
@@ -94,6 +95,12 @@ class PDFCatalogApp {
             });
         });
 
+        // Show dozen price checkbox
+        document.getElementById('show-dozen-price').addEventListener('change', (e) => {
+            this.data.showDozenPrice = e.target.checked;
+            this.renderProductsTable();
+        });
+
         // Product table: move up/down
         document.getElementById('products-tbody').addEventListener('click', (e) => {
             const up = e.target.closest('.btn-move-up');
@@ -139,7 +146,7 @@ class PDFCatalogApp {
         });
 
         const tbody = document.getElementById('products-tbody');
-        tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="loading">Cargando productos...</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><div class="loading">Cargando productos...</div></td></tr>`;
 
         try {
             const res = await fetch(`/api/products/${categoryId}`);
@@ -182,7 +189,7 @@ class PDFCatalogApp {
 
         } catch (error) {
             this.showError(error.message);
-            tbody.innerHTML = `<tr><td colspan="6" class="empty-state" style="color:var(--danger);">${error.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--danger);">${error.message}</td></tr>`;
         }
     }
 
@@ -225,7 +232,7 @@ class PDFCatalogApp {
         });
 
         const tbody = document.getElementById('products-tbody');
-        tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="loading">Cargando productos de colección...</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><div class="loading">Cargando productos de colección...</div></td></tr>`;
 
         try {
             const res = await fetch('/api/colecciones/productos', {
@@ -269,7 +276,7 @@ class PDFCatalogApp {
 
         } catch (error) {
             this.showError(error.message);
-            tbody.innerHTML = `<tr><td colspan="6" class="empty-state" style="color:var(--danger);">${error.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="empty-state" style="color:var(--danger);">${error.message}</td></tr>`;
         }
     }
 
@@ -283,17 +290,24 @@ class PDFCatalogApp {
         const tbody = document.getElementById('products-tbody');
 
         if (!this.data.currentOrderIds.length) {
-            tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Selecciona una categoría</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="empty-state">Selecciona una categoría</td></tr>`;
             return;
         }
 
         const lastIndex = this.data.currentOrderIds.length - 1;
+        const showDozen = this.data.showDozenPrice;
+
+        // Show/hide dozen column header
+        document.querySelectorAll('.th-dozen').forEach(th => {
+            th.style.display = showDozen ? '' : 'none';
+        });
 
         tbody.innerHTML = this.data.currentOrderIds.map((id, index) => {
             const product = this.getProductById(id);
             if (!product) return '';
 
             const price = product.variants?.[0]?.price || product.price || 0;
+            const dozenPrice = product.variants?.[0]?.precioDocena || product.variants?.[0]?.precio_docena || 0;
             const image = product.variants?.[0]?.images?.[0]?.src || '';
             const title = product.title || 'Sin título';
             const v = product.variants?.[0] || {};
@@ -309,7 +323,8 @@ class PDFCatalogApp {
                 <td><img src="${image}" alt="${title}" class="product-thumbnail"
                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2245%22 height=%2245%22%3E%3Crect fill=%22%23ddd%22 width=%2245%22 height=%2245%22/%3E%3C/svg%3E'"></td>
                 <td><div style="font-weight:500;">${title}</div></td>
-                <td><span style="font-weight:600;color:var(--primary);">$${price.toFixed(2)}</span></td>
+                <td><input type="number" class="price-input" data-field="price" value="${price.toFixed(2)}" step="0.01" min="0" style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.85rem;font-weight:600;color:var(--primary);"></td>
+                <td class="td-dozen" style="${showDozen ? '' : 'display:none;'}"><input type="number" class="price-input" data-field="dozenPrice" value="${dozenPrice.toFixed(2)}" step="0.01" min="0" style="width:85px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:0.85rem;font-weight:600;color:var(--primary);"></td>
                 <td><span style="font-size:0.85rem;color:var(--text-light);">${measurements}</span></td>
                 <td>
                     <div class="action-buttons">
@@ -323,6 +338,27 @@ class PDFCatalogApp {
         document.getElementById('total-products').innerHTML = `<strong>${this.data.currentOrderIds.length}</strong> productos`;
         this.updatePageEstimate();
         this.setupDragAndDrop();
+        this.bindPriceInputs();
+    }
+
+    bindPriceInputs() {
+        document.querySelectorAll('.price-input').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const row = e.target.closest('tr');
+                const id = row.dataset.id;
+                const field = e.target.dataset.field;
+                const val = parseFloat(e.target.value) || 0;
+                const product = this.getProductById(id);
+                if (product && product.variants?.[0]) {
+                    if (field === 'price') {
+                        product.variants[0].price = val;
+                    } else if (field === 'dozenPrice') {
+                        product.variants[0].precioDocena = val;
+                        product.variants[0].precio_docena = val;
+                    }
+                }
+            });
+        });
     }
 
     // ── Move Product ──────────────────────────────
@@ -464,6 +500,7 @@ class PDFCatalogApp {
         if (coverPdf) formData.append('cover_pdf', coverPdf);
         if (backCoverPdf) formData.append('back_cover_pdf', backCoverPdf);
         if (backgroundPdf) formData.append('background_pdf', backgroundPdf);
+        formData.append('showDozenPrice', this.data.showDozenPrice ? 'true' : 'false');
 
         this.showLoading('Generando PDF...', 'Procesando productos y portadas');
 
