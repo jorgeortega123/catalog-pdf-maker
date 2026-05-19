@@ -124,6 +124,14 @@ class PDFGenerator:
         with ProcessPoolExecutor(max_workers=1) as pool:
             catalog_bytes = await loop.run_in_executor(pool, _render_pdf_process, html_content)
 
+        # Normalize uploaded PDFs to A4
+        if background_pdf_bytes:
+            background_pdf_bytes = self._normalize_pdf(background_pdf_bytes)
+        if cover_pdf_bytes:
+            cover_pdf_bytes = self._normalize_pdf(cover_pdf_bytes)
+        if back_cover_pdf_bytes:
+            back_cover_pdf_bytes = self._normalize_pdf(back_cover_pdf_bytes)
+
         # Merge background PDF pages under catalog pages using PyPDF2
         if background_pdf_bytes:
             catalog_bytes = self._merge_background_pdf(catalog_bytes, background_pdf_bytes)
@@ -149,6 +157,35 @@ class PDFGenerator:
             for page in PdfReader(BytesIO(back_cover_pdf_bytes)).pages:
                 writer.add_page(page)
 
+        output = BytesIO()
+        writer.write(output)
+        return output.getvalue()
+
+    @staticmethod
+    def _scale_to_a4(page) -> 'PageObject':
+        """Scale a PDF page to fit A4 (210x297mm = 595.28x841.89 pts)."""
+        from PyPDF2 import PageObject as _PO
+        A4_W, A4_H = 595.28, 841.89
+        src_w = float(page.mediabox.width)
+        src_h = float(page.mediabox.height)
+        # Create blank A4 page
+        a4_page = _PO.create_blank_page(width=A4_W, height=A4_H)
+        # Scale source to fit inside A4
+        scale_x = A4_W / src_w
+        scale_y = A4_H / src_h
+        scale = min(scale_x, scale_y)
+        # Center on A4
+        tx = (A4_W - src_w * scale) / 2
+        ty = (A4_H - src_h * scale) / 2
+        a4_page.merge_transformed_page(page, f"ctm [{scale} 0 0 {scale} {tx} {ty}]")
+        return a4_page
+
+    def _normalize_pdf(self, pdf_bytes: bytes) -> bytes:
+        """Ensure all pages are A4 sized, scaling if needed."""
+        reader = PdfReader(BytesIO(pdf_bytes))
+        writer = PdfWriter()
+        for page in reader.pages:
+            writer.add_page(self._scale_to_a4(page))
         output = BytesIO()
         writer.write(output)
         return output.getvalue()
