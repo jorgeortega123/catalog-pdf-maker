@@ -163,14 +163,17 @@ class PDFGenerator:
 
     @staticmethod
     def _scale_to_a4(page) -> 'PageObject':
-        """Scale a PDF page to fit A4 (210x297mm = 595.28x841.89 pts)."""
+        """Scale a PDF page to fill A4 (210x297mm = 595.28x841.89 pts) with no gaps."""
         from PyPDF2 import PageObject as _PO, Transformation
         A4_W, A4_H = 595.28, 841.89
         src_w = float(page.mediabox.width)
         src_h = float(page.mediabox.height)
+        # If already A4 (within 1pt tolerance), skip scaling
+        if abs(src_w - A4_W) < 1 and abs(src_h - A4_H) < 1:
+            return page
         scale_x = A4_W / src_w
         scale_y = A4_H / src_h
-        scale = min(scale_x, scale_y)
+        scale = max(scale_x, scale_y)
         tx = (A4_W - src_w * scale) / 2
         ty = (A4_H - src_h * scale) / 2
         page.add_transformation(Transformation().scale(scale).translate(tx, ty))
