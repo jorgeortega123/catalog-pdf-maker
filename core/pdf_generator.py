@@ -1,19 +1,21 @@
 """
-PDF Generator using pdfkit + Jinja2
+PDF Generator using Playwright + Jinja2
 Creates modern A4 PDF catalogs with HTML/CSS templates
 """
 import os
 import re
 import base64
+import asyncio
+from concurrent.futures import ProcessPoolExecutor
 from io import BytesIO
 from typing import List, Optional
 import requests
 
 try:
-    import pdfkit
-    HAS_PDFKIT = True
+    import playwright
+    HAS_PLAYWRIGHT = True
 except ImportError:
-    HAS_PDFKIT = False
+    HAS_PLAYWRIGHT = False
 
 try:
     from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -36,8 +38,24 @@ except ImportError:
 from .models import PDFConfig
 
 
+def _render_pdf_process(html_content: str) -> bytes:
+    """Standalone function for ProcessPoolExecutor — must be at module level."""
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.set_content(html_content, wait_until="networkidle")
+        pdf_bytes = page.pdf(
+            format='A4',
+            margin={'top': '0', 'right': '0', 'bottom': '0', 'left': '0'},
+            print_background=True,
+        )
+        browser.close()
+        return pdf_bytes
+
+
 class PDFGenerator:
-    """Generates A4 PDF catalogs using pdfkit + Jinja2 templates"""
+    """Generates A4 PDF catalogs using Playwright + Jinja2 templates"""
 
     def __init__(self, config: PDFConfig, products: List, category_name: str,
                  template_dir: str = None, show_dozen_price: bool = False):
@@ -65,40 +83,13 @@ class PDFGenerator:
         else:
             self.env = None
 
-    def generate(self, cover_pdf_bytes: Optional[bytes] = None, back_cover_pdf_bytes: Optional[bytes] = None, background_pdf_bytes: Optional[bytes] = None) -> bytes:
+    async def generate(self, cover_pdf_bytes: Optional[bytes] = None, back_cover_pdf_bytes: Optional[bytes] = None, background_pdf_bytes: Optional[bytes] = None) -> bytes:
         """Generate PDF and return as bytes. Optionally merge with cover/back cover PDFs and apply background PDF."""
-        if not HAS_PDFKIT:
-            raise ImportError("pdfkit is not installed. Install it with: pip install pdfkit")
+        if not HAS_PLAYWRIGHT:
+            raise ImportError("playwright is not installed. Install it with: pip install playwright && playwright install chromium")
 
         if not HAS_JINJA2:
             raise ImportError("Jinja2 is not installed. Install it with: pip install jinja2")
-
-        # Detectar wkhtmltopdf según el sistema operativo
-        import platform
-        if platform.system() == "Windows":
-            candidates = [
-                r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe',
-                r'C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe',
-            ]
-            wkhtmltopdf_path = next((p for p in candidates if os.path.exists(p)), None)
-        else:
-            # Linux/Docker: usar el wrapper con Xvfb si existe, sino el binario directo
-            candidates = [
-                '/usr/local/bin/wkhtmltopdf-xvfb',
-                '/usr/bin/wkhtmltopdf',
-            ]
-            wkhtmltopdf_path = next((p for p in candidates if os.path.exists(p)), None)
-
-        if wkhtmltopdf_path:
-            config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
-        else:
-            try:
-                config = pdfkit.configuration()
-            except:
-                raise RuntimeError(
-                    "wkhtmltopdf no encontrado. "
-                    "Instálalo desde: https://wkhtmltopdf.org/downloads.html"
-                )
 
         # Prepare product data for template
         products_data = self._prepare_products_data()
@@ -128,21 +119,10 @@ class PDFGenerator:
             show_dozen_price=self.show_dozen_price
         )
 
-        # Convert HTML to PDF
-        pdf_options = {
-            'page-size': 'A4',
-            'margin-top': '0',
-            'margin-right': '0',
-            'margin-bottom': '0',
-            'margin-left': '0',
-            'encoding': 'UTF-8',
-            'no-outline': None,
-            'enable-local-file-access': None,
-            'disable-smart-shrinking': '',
-            'quiet': '',
-        }
-
-        catalog_bytes = pdfkit.from_string(html_content, False, options=pdf_options, configuration=config)
+        # Run Playwright in a separate process to avoid Windows asyncio event loop conflicts
+        loop = asyncio.get_event_loop()
+        with ProcessPoolExecutor(max_workers=1) as pool:
+            catalog_bytes = await loop.run_in_executor(pool, _render_pdf_process, html_content)
 
         # Merge background PDF pages under catalog pages using PyPDF2
         if background_pdf_bytes:
@@ -340,4 +320,4 @@ def estimate_pdf_pages(product_count: int, products_per_page: int = 6) -> int:
     return pages + 2  # +2 for cover and back cover
 
 
-# Legacy ReportLab functions removed - using pdfkit + Jinja2 now
+# Legacy ReportLab functions removed - using Playwright + Jinja2 now

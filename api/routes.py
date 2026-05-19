@@ -300,7 +300,7 @@ async def generate_pdf(
         # Generate PDF (use custom title if provided)
         generator = PDFGenerator(config, ordered_products, display_title,
                                 show_dozen_price=showDozenPrice.lower() == 'true')
-        pdf_bytes = generator.generate(
+        pdf_bytes = await generator.generate(
             cover_pdf_bytes=cover_pdf_bytes,
             back_cover_pdf_bytes=back_cover_pdf_bytes,
             background_pdf_bytes=background_pdf_bytes
