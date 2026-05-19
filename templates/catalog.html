@@ -24,39 +24,29 @@
             margin: 0;
         }
 
-        .pdf-page {
-            width: 210mm;
-            height: 297mm;
-            position: relative;
-            page-break-after: always;
-            overflow: hidden;
+        {% if use_bg_pdf %}
+        html, body {
+            background: transparent !important;
+            background-color: transparent !important;
         }
+        .card {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        .card-body {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        {% endif %}
 
         /* ==================== COVER ==================== */
         .cover-page {
+            width: 210mm;
+            height: 297mm;
             background: #0a0a0a;
             text-align: center;
             position: relative;
-        }
-
-        .cover-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 0;
-        }
-
-        .cover-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(170deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.82) 100%);
-            z-index: 1;
+            page-break-after: always;
         }
 
         .cover-content {
@@ -130,84 +120,16 @@
             text-transform: uppercase;
         }
 
-        /* ==================== PRODUCT PAGE ==================== */
-        .product-page {
-            position: relative;
-            background: #ffffff;
-        }
-
-        {% if use_bg_pdf %}
-        html, body {
-            background: transparent !important;
-            background-color: transparent !important;
-        }
-        .product-page {
-            background: transparent !important;
-            background-color: transparent !important;
-        }
-        .card {
-            background: transparent !important;
-            background-color: transparent !important;
-        }
-        .card-body {
-            background: transparent !important;
-            background-color: transparent !important;
-        }
-        {% endif %}
-
-        .page-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: 0;
-        }
-
-        /* Header */
-        .page-header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 18mm;
-            background: transparent;
-            z-index: 20;
-        }
-
-        .header-inner {
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-        }
-
-        .header-logo {
-            display: table-cell;
-            padding: 6mm 10mm 0;
-            text-align: center;
-            vertical-align: top;
-            font-family: 'Inter', Arial, sans-serif;
-            font-size: 11px;
-            font-weight: 600;
-            color: #333333;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        /* Products Container */
+        /* ==================== PRODUCTS ==================== */
         .products-area {
-            position: relative;
-            z-index: 10;
-            padding: 20mm 5mm;
-            background: transparent;
+            padding: 8mm 5mm;
         }
 
-        /* Grid Table — 2 columnas x 4 filas */
+        /* Grid Table — 2 columnas */
         .grid-table {
             width: 100%;
             border-collapse: separate;
-            border-spacing: 4mm 5mm;
+            border-spacing: 4mm 3mm;
         }
 
         .grid-table td {
@@ -222,6 +144,7 @@
             width: 100%;
             table-layout: fixed;
             background: #ffffff;
+            page-break-inside: avoid;
         }
 
         .card-img-cell {
@@ -236,7 +159,6 @@
             height: 48mm;
             background: #c5bdb3;
             border-top-left-radius: 14px;
-            -webkit-border-top-left-radius: 14px;
             overflow: hidden;
             position: relative;
         }
@@ -257,7 +179,7 @@
             height: 100%;
         }
 
-        /* Imagen principal — se adapta sin deformarse */
+        /* Imagen principal */
         .img-main {
             position: absolute;
             top: 0;
@@ -265,7 +187,6 @@
             width: 100%;
             height: 100%;
             background-size: contain;
-            -webkit-background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
             z-index: 1;
@@ -283,10 +204,8 @@
             letter-spacing: 0.3px;
             text-transform: uppercase;
             padding: 3px 8px;
-            -webkit-border-radius: 12px;
             border-radius: 12px;
             box-shadow: 0 0 0 1px #999999;
-            -webkit-box-shadow: 0 0 0 1px #999999;
             z-index: 3;
         }
 
@@ -321,7 +240,6 @@
             width: 5mm;
             height: 5mm;
             border-radius: 50%;
-            -webkit-border-radius: 50%;
             margin: 0 auto;
         }
 
@@ -424,52 +342,12 @@
             color: #222222;
         }
 
-        /* Footer */
-        .page-footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 8mm;
-            background: transparent;
-            z-index: 20;
-        }
-
-        .footer-inner {
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-        }
-
-        .footer-text {
-            display: table-cell;
-            padding: 0 10mm;
-            text-align: left;
-            vertical-align: middle;
-            font-size: 8px;
-            color: rgba(0,0,0,0.5);
-        }
-
-        .page-num {
-            display: table-cell;
-            padding: 0 10mm;
-            text-align: right;
-            vertical-align: middle;
-            font-family: 'Playfair Display', Georgia, serif;
-            font-size: 11px;
-            font-weight: 600;
-            color: rgba(0,0,0,0.6);
-        }
-
         /* ==================== BACK COVER ==================== */
         .back-cover {
+            width: 210mm;
+            height: 297mm;
             position: relative;
-        }
-
-        .back-cover-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            page-break-before: always;
         }
 
         .no-products {
@@ -478,21 +356,13 @@
             font-size: 18px;
             color: #6c757d;
         }
-
-        /* Placeholder for missing images */
-        .no-img {
-            color: #cccccc;
-            font-size: 11px;
-            text-align: center;
-            padding-top: 24mm;
-        }
     </style>
 </head>
 <body>
     {% if products %}
-        <!-- Cover -->
+        <!-- Cover (fixed page) -->
         {% if not skip_cover %}
-        <div class="pdf-page cover-page">
+        <div class="cover-page">
             <div class="cover-content">
                 <div class="cover-brand">Tienda Artesanal</div>
                 <div class="cover-jandrea">Jandrea</div>
@@ -504,124 +374,99 @@
         </div>
         {% endif %}
 
-        <!-- Product Pages -->
-        {% set global_index = namespace(value=0) %}
-        {% for page_products in products|batch(8) %}
-            <div class="pdf-page product-page">
-                {% if background_url %}
-                    <img src="{{ background_url }}" class="page-bg" alt="">
-                {% endif %}
-                <!-- Header -->
-                {# <div class="page-header">
-                    <div class="header-inner">
-                        <div class="header-logo">Catálogo &mdash; {{ category_name }}</div>
-                    </div>
-                </div> #}
-
-                <!-- Products Grid -->
-                <div class="products-area">
-                    <table class="grid-table">
-                        {% for row_products in page_products|batch(2) %}
-                            <tr>
-                                {% for product in row_products %}
-                                    {% set global_index.value = global_index.value + 1 %}
-                                    <td>
-                                        <div class="card">
-                                            <!-- Imagen cuadrada izquierda -->
-                                            <div class="card-img-cell">
-                                                <div class="card-img-box">
-                                                    {% if product.image_url %}
-                                                        <div class="img-bg-blur">
-                                                            <img src="{{ product.blurred_image_url }}" alt="">
-                                                        </div>
-                                                        <div class="img-main" style="background-image: url('{{ product.image_url }}');"></div>
-                                                    {% endif %}
-                                                    {% if product.product_id %}
-                                                        <div class="img-id-badge">{{ product.product_id }}</div>
-                                                    {% endif %}
-                                                    <div class="img-notch"></div>
+        <!-- Products — 6 per page, Chromium paginates -->
+        {% for page_products in products|batch(6) %}
+        <div class="products-area" style="page-break-after: always;">
+            <table class="grid-table">
+                {% for row_products in page_products|batch(2) %}
+                    <tr>
+                        {% for product in row_products %}
+                            <td>
+                                <div class="card">
+                                    <!-- Imagen cuadrada izquierda -->
+                                    <div class="card-img-cell">
+                                        <div class="card-img-box">
+                                            {% if product.image_url %}
+                                                <div class="img-bg-blur">
+                                                    <img src="{{ product.blurred_image_url }}" alt="">
                                                 </div>
-                                                <!-- Colores disponibles -->
-                                                <table class="color-swatches">
-                                                    <tr>
-                                                        <td>
-                                                            <div class="swatch" style="background:#8B6340;"></div>
-                                                            <span class="swatch-label">C. Claro</span>
-                                                        </td>
-                                                        <td>
-                                                            <div class="swatch" style="background:#3B1F0A;"></div>
-                                                            <span class="swatch-label">C. Oscuro</span>
-                                                        </td>
-                                                        <td>
-                                                            <div class="swatch" style="background:#7B0D1E;"></div>
-                                                            <span class="swatch-label">Cerezo</span>
-                                                        </td>
-                                                        <td>
-                                                            <div class="swatch" style="background:#E8E8E8; -webkit-box-shadow: 0 0 0 1px #bbb; box-shadow: 0 0 0 1px #bbb;"></div>
-                                                            <span class="swatch-label">Blanco</span>
-                                                        </td>
-                                                    </tr>
-                                                </table>
-                                            </div>
-                                            <!-- Texto derecha -->
-                                            <div class="card-body">
-                                                <div class="card-title">{{ product.title }}</div>
-                                                {% if product.description %}
-                                                    <div class="card-desc">{{ product.description }}</div>
-                                                {% endif %}
-                                                {% if product.material %}
-                                                    <div class="card-material">Material: {{ product.material }}</div>
-                                                {% endif %}
-                                                {% if product.width or product.height or product.depth %}
-                                                    <div class="card-dims">
-                                                        {% if product.width %}
-                                                            <span class="dim-row"><span class="dim-label">Ancho</span><span class="dim-value">{{ product.width }} cm</span></span>
-                                                        {% endif %}
-                                                        {% if product.height %}
-                                                            <span class="dim-row"><span class="dim-label">Alto</span><span class="dim-value">{{ product.height }} cm</span></span>
-                                                        {% endif %}
-                                                        {% if product.depth %}
-                                                            <span class="dim-row"><span class="dim-label">Prof.</span><span class="dim-value">{{ product.depth }} cm</span></span>
-                                                        {% endif %}
-                                                    </div>
-                                                {% endif %}
-                                                <div class="card-price">${{ "%.2f"|format(product.price|float) }}</div>
-                                                {% if show_dozen_price %}
-                                                <div class="card-price-dozen">
-                                                    Precio docena: <b>${{ "%.2f"|format(product.price_dozen_unit|float) }}</b>
-                                                </div>
-                                                {% endif %}
-                                            </div>
+                                                <div class="img-main" style="background-image: url('{{ product.image_url }}');"></div>
+                                            {% endif %}
+                                            {% if product.product_id %}
+                                                <div class="img-id-badge">{{ product.product_id }}</div>
+                                            {% endif %}
+                                            <div class="img-notch"></div>
                                         </div>
-                                    </td>
-                                {% endfor %}
-                                {% if row_products|length < 2 %}
-                                    <td></td>
-                                {% endif %}
-                            </tr>
+                                        <!-- Colores disponibles -->
+                                        <table class="color-swatches">
+                                            <tr>
+                                                <td>
+                                                    <div class="swatch" style="background:#8B6340;"></div>
+                                                    <span class="swatch-label">C. Claro</span>
+                                                </td>
+                                                <td>
+                                                    <div class="swatch" style="background:#3B1F0A;"></div>
+                                                    <span class="swatch-label">C. Oscuro</span>
+                                                </td>
+                                                <td>
+                                                    <div class="swatch" style="background:#7B0D1E;"></div>
+                                                    <span class="swatch-label">Cerezo</span>
+                                                </td>
+                                                <td>
+                                                    <div class="swatch" style="background:#E8E8E8; box-shadow: 0 0 0 1px #bbb;"></div>
+                                                    <span class="swatch-label">Blanco</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <!-- Texto derecha -->
+                                    <div class="card-body">
+                                        <div class="card-title">{{ product.title }}</div>
+                                        {% if product.description %}
+                                            <div class="card-desc">{{ product.description }}</div>
+                                        {% endif %}
+                                        {% if product.material %}
+                                            <div class="card-material">Material: {{ product.material }}</div>
+                                        {% endif %}
+                                        {% if product.width or product.height or product.depth %}
+                                            <div class="card-dims">
+                                                {% if product.width %}
+                                                    <span class="dim-row"><span class="dim-label">Ancho</span><span class="dim-value">{{ product.width }} cm</span></span>
+                                                {% endif %}
+                                                {% if product.height %}
+                                                    <span class="dim-row"><span class="dim-label">Alto</span><span class="dim-value">{{ product.height }} cm</span></span>
+                                                {% endif %}
+                                                {% if product.depth %}
+                                                    <span class="dim-row"><span class="dim-label">Prof.</span><span class="dim-value">{{ product.depth }} cm</span></span>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                        <div class="card-price">${{ "%.2f"|format(product.price|float) }}</div>
+                                        {% if show_dozen_price %}
+                                        <div class="card-price-dozen">
+                                            Precio docena: <b>${{ "%.2f"|format(product.price_dozen_unit|float) }}</b>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
                         {% endfor %}
-                    </table>
-                </div>
-
-                <!-- Footer -->
-                {# <div class="page-footer">
-                    <div class="footer-inner">
-                        <div class="footer-text">{{ category_name }} · Colección 2024</div>
-                        <div class="page-num">{{ loop.index }}</div>
-                    </div>
-                </div> #}
-            </div>
+                        {% if row_products|length < 2 %}
+                            <td></td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
         {% endfor %}
 
-        <!-- Back Cover -->
+        <!-- Back Cover (fixed page) -->
         {% if not skip_back_cover %}
-        <div class="pdf-page back-cover">
+        <div class="back-cover">
         </div>
         {% endif %}
     {% else %}
-        <div class="pdf-page">
-            <div class="no-products">No hay productos para mostrar</div>
-        </div>
+        <div class="no-products">No hay productos para mostrar</div>
     {% endif %}
 </body>
 </html>
