@@ -164,20 +164,18 @@ class PDFGenerator:
     @staticmethod
     def _scale_to_a4(page) -> 'PageObject':
         """Scale a PDF page to fit A4 (210x297mm = 595.28x841.89 pts)."""
-        from PyPDF2 import PageObject as _PO
+        from PyPDF2 import PageObject as _PO, Transformation
         A4_W, A4_H = 595.28, 841.89
         src_w = float(page.mediabox.width)
         src_h = float(page.mediabox.height)
-        # Create blank A4 page
-        a4_page = _PO.create_blank_page(width=A4_W, height=A4_H)
-        # Scale source to fit inside A4
         scale_x = A4_W / src_w
         scale_y = A4_H / src_h
         scale = min(scale_x, scale_y)
-        # Center on A4
         tx = (A4_W - src_w * scale) / 2
         ty = (A4_H - src_h * scale) / 2
-        a4_page.merge_transformed_page(page, f"ctm [{scale} 0 0 {scale} {tx} {ty}]")
+        page.add_transformation(Transformation().scale(scale).translate(tx, ty))
+        a4_page = _PO.create_blank_page(width=A4_W, height=A4_H)
+        a4_page.merge_page(page)
         return a4_page
 
     def _normalize_pdf(self, pdf_bytes: bytes) -> bytes:
