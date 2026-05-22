@@ -269,10 +269,10 @@ async def generate_pdf(
             raise HTTPException(status_code=404, detail="No products found")
 
         # Check product count
-        if len(ordered_products) > 100:
+        if len(ordered_products) > 300:
             raise HTTPException(
                 status_code=400,
-                detail=f"Too many products ({len(ordered_products)}). Maximum is 100."
+                detail=f"Too many products ({len(ordered_products)}). Maximum is 300."
             )
 
         # Read uploaded PDFs (fallback to saved files)

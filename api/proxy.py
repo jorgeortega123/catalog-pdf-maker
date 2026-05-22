@@ -13,13 +13,25 @@ class BackendProxy:
 
     def __init__(self, base_url: Optional[str] = None):
         self.base_url = base_url or settings.backend_url
-        self.timeout = 30.0
+        self.timeout = httpx.Timeout(60.0, connect=15.0)
+        self._retries = 2
+
+    async def _get_with_retry(self, client: httpx.AsyncClient, url: str, **kwargs) -> httpx.Response:
+        """GET with automatic retry on transient errors."""
+        for attempt in range(self._retries + 1):
+            try:
+                response = await client.get(url, **kwargs)
+                response.raise_for_status()
+                return response
+            except (httpx.ReadTimeout, httpx.ConnectTimeout, httpx.ConnectError):
+                if attempt == self._retries:
+                    raise
+        raise RuntimeError("Unreachable")
 
     async def get_categories(self) -> List[Category]:
         """Get all categories from backend"""
         async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.get(f"{self.base_url}/categories")
-            response.raise_for_status()
+            response = await self._get_with_retry(client, f"{self.base_url}/categories")
             data = response.json()
             return [Category(**cat) for cat in data]
 
@@ -28,8 +40,7 @@ class BackendProxy:
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             url = f"{self.base_url}/categories/products/by-category/{category_id}"
             params = {"all": "true" if all_products else "false"}
-            response = await client.get(url, params=params)
-            response.raise_for_status()
+            response = await self._get_with_retry(client, url, params=params)
             data = response.json()
             return ProductsResponse(**data)
 
@@ -39,11 +50,10 @@ class BackendProxy:
             all_colecciones = []
             page = 1
             while True:
-                response = await client.get(
-                    f"{self.base_url}/colecciones/all",
+                response = await self._get_with_retry(
+                    client, f"{self.base_url}/colecciones/all",
                     params={"page": page, "limit": 50}
                 )
-                response.raise_for_status()
                 data = response.json()
                 all_colecciones.extend(data.get("colecciones", []))
                 pagination = data.get("pagination", {})
