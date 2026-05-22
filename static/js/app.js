@@ -307,7 +307,8 @@ class PDFCatalogApp {
             if (!product) return '';
 
             const price = product.variants?.[0]?.price || product.price || 0;
-            const dozenPrice = product.variants?.[0]?.precioDocena || product.variants?.[0]?.precio_docena || 0;
+            const rawDozen = product.variants?.[0]?.precioDocena || product.variants?.[0]?.precio_docena || 0;
+            const dozenPrice = rawDozen > 0 ? parseFloat(rawDozen) : (price * 10.2) / 12;
             const image = product.variants?.[0]?.images?.[0]?.src || '';
             const title = product.title || 'Sin título';
             const v = product.variants?.[0] || {};
