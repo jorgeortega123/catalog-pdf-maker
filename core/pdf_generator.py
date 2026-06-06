@@ -6,10 +6,14 @@ import os
 import re
 import base64
 import asyncio
+import logging
+import time
 from concurrent.futures import ProcessPoolExecutor
 from io import BytesIO
 from typing import List, Optional, Dict
 import requests
+
+logger = logging.getLogger("pdf_maker.generator")
 
 try:
     import playwright
@@ -46,17 +50,35 @@ from .models import PDFConfig
 
 def _render_pdf_process(html_content: str) -> bytes:
     """Standalone function for ProcessPoolExecutor — must be at module level."""
+    import logging as _logging
+    _log = _logging.getLogger("pdf_maker.generator")
+    _log.info("_render_pdf_process iniciado | HTML size: %.2f MB", len(html_content) / (1024 * 1024))
+    t0 = time.time()
+
     from playwright.sync_api import sync_playwright
+    _log.info("Lanzando Chromium headless...")
+    t1 = time.time()
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
+        _log.info("Chromium lanzado en %.2fs", time.time() - t1)
+
         page = browser.new_page()
+        _log.info("Cargando contenido HTML en pagina...")
+        t2 = time.time()
         page.set_content(html_content, wait_until="networkidle", timeout=60000)
+        _log.info("HTML cargado en %.2fs", time.time() - t2)
+
+        _log.info("Generando PDF...")
+        t3 = time.time()
         pdf_bytes = page.pdf(
             format='A4',
             margin={'top': '0', 'right': '0', 'bottom': '0', 'left': '0'},
             print_background=True,
         )
+        _log.info("PDF generado en %.2fs | %d bytes", time.time() - t3, len(pdf_bytes))
+
         browser.close()
+        _log.info("_render_pdf_process completo en %.2fs total", time.time() - t0)
         return pdf_bytes
 
 
@@ -87,6 +109,11 @@ class PDFGenerator:
 
     async def generate(self, cover_pdf_bytes: Optional[bytes] = None, back_cover_pdf_bytes: Optional[bytes] = None, background_pdf_bytes: Optional[bytes] = None) -> bytes:
         """Generate PDF and return as bytes. Optionally merge with cover/back cover PDFs and apply background PDF."""
+        t0 = time.time()
+        logger.info("generate() iniciado | %d productos | cover=%s | back=%s | bg=%s",
+                     len(self.products),
+                     bool(cover_pdf_bytes), bool(back_cover_pdf_bytes), bool(background_pdf_bytes))
+
         if not HAS_PLAYWRIGHT:
             raise ImportError("playwright is not installed. Install it with: pip install playwright && playwright install chromium")
 
@@ -94,7 +121,10 @@ class PDFGenerator:
             raise ImportError("Jinja2 is not installed. Install it with: pip install jinja2")
 
         # Prepare product data (parallel image downloads)
+        logger.info("Preparando datos de productos (descarga de imagenes)...")
+        t1 = time.time()
         products_data = await self._prepare_products_data()
+        logger.info("Datos de productos listos en %.2fs (%d productos)", time.time() - t1, len(products_data))
 
         background_url = self.config.images.background_url if self.config.images else None
         skip_cover = cover_pdf_bytes is not None
@@ -102,6 +132,8 @@ class PDFGenerator:
         use_bg_pdf = background_pdf_bytes is not None
         effective_bg_url = None if use_bg_pdf else background_url
 
+        logger.info("Renderizando template HTML...")
+        t2 = time.time()
         template = self.env.get_template('catalog.html')
         html_content = template.render(
             products=products_data,
@@ -114,43 +146,72 @@ class PDFGenerator:
             use_bg_pdf=use_bg_pdf,
             show_dozen_price=self.show_dozen_price
         )
+        html_size_mb = len(html_content) / (1024 * 1024)
+        logger.info("HTML renderizado en %.2fs (%.2f MB)", time.time() - t2, html_size_mb)
 
         # Run Playwright in a separate process to avoid Windows asyncio event loop conflicts
+        logger.info("Iniciando Playwright en proceso separado...")
+        t3 = time.time()
         loop = asyncio.get_event_loop()
         with ProcessPoolExecutor(max_workers=1) as pool:
             catalog_bytes = await loop.run_in_executor(pool, _render_pdf_process, html_content)
+        logger.info("Playwright completo en %.2fs (%d bytes)", time.time() - t3, len(catalog_bytes))
 
+        # Normalize uploaded PDFs
         if background_pdf_bytes:
+            logger.info("Normalizando background PDF...")
+            t_norm = time.time()
             background_pdf_bytes = self._normalize_pdf(background_pdf_bytes)
+            logger.info("Background normalizado en %.2fs", time.time() - t_norm)
         if cover_pdf_bytes:
+            logger.info("Normalizando cover PDF...")
+            t_norm = time.time()
             cover_pdf_bytes = self._normalize_pdf(cover_pdf_bytes)
+            logger.info("Cover normalizado en %.2fs", time.time() - t_norm)
         if back_cover_pdf_bytes:
+            logger.info("Normalizando back cover PDF...")
+            t_norm = time.time()
             back_cover_pdf_bytes = self._normalize_pdf(back_cover_pdf_bytes)
+            logger.info("Back cover normalizado en %.2fs", time.time() - t_norm)
 
         if background_pdf_bytes:
+            logger.info("Mergeando background PDF...")
+            t_merge = time.time()
             catalog_bytes = self._merge_background_pdf(catalog_bytes, background_pdf_bytes)
+            logger.info("Background mergeado en %.2fs", time.time() - t_merge)
 
         if not cover_pdf_bytes and not back_cover_pdf_bytes:
+            logger.info("generate() completo en %.2fs (sin cover/back)", time.time() - t0)
             return catalog_bytes
 
         if not HAS_PYPDF2:
             raise ImportError("PyPDF2 is not installed. Install it with: pip install PyPDF2")
 
+        logger.info("Mergeando cover/back cover...")
+        t_merge = time.time()
         writer = PdfWriter()
 
         if cover_pdf_bytes:
+            cover_pages = len(PdfReader(BytesIO(cover_pdf_bytes)).pages)
             for page in PdfReader(BytesIO(cover_pdf_bytes)).pages:
                 writer.add_page(page)
+            logger.info("Cover: %d paginas", cover_pages)
 
+        catalog_pages = len(PdfReader(BytesIO(catalog_bytes)).pages)
         for page in PdfReader(BytesIO(catalog_bytes)).pages:
             writer.add_page(page)
+        logger.info("Catalogo: %d paginas", catalog_pages)
 
         if back_cover_pdf_bytes:
+            back_pages = len(PdfReader(BytesIO(back_cover_pdf_bytes)).pages)
             for page in PdfReader(BytesIO(back_cover_pdf_bytes)).pages:
                 writer.add_page(page)
+            logger.info("Back cover: %d paginas", back_pages)
 
         output = BytesIO()
         writer.write(output)
+        logger.info("Merge cover/back completo en %.2fs", time.time() - t_merge)
+        logger.info("generate() completo en %.2fs | PDF final: %d bytes", time.time() - t0, output.tell())
         return output.getvalue()
 
     @staticmethod
@@ -205,12 +266,16 @@ class PDFGenerator:
         """Download all unique images in parallel, returning resized data URLs and blurred versions."""
         unique_urls = list(set(url for url in image_urls if url))
         if not unique_urls:
+            logger.info("Sin imagenes para descargar")
             return {}
+
+        logger.info("Descargando %d imagenes unicas...", len(unique_urls))
 
         if not HAS_HTTPX:
             # Fallback: sequential download (slow but works without httpx)
+            logger.warning("httpx no disponible, descarga secuencial (lento)")
             results = {}
-            for url in unique_urls:
+            for i, url in enumerate(unique_urls):
                 try:
                     resp = requests.get(url, timeout=15)
                     resp.raise_for_status()
@@ -220,8 +285,9 @@ class PDFGenerator:
                         'data_url': self._create_resized_data_url(raw, ct, 600),
                         'blurred_data_url': self._create_blurred_from_bytes(raw),
                     }
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Error descargando imagen %d/%d: %s", i + 1, len(unique_urls), e)
+            logger.info("Descarga secuencial completa: %d/%d exitosas", len(results), len(unique_urls))
             return results
 
         results = {}
@@ -241,7 +307,8 @@ class PDFGenerator:
                             'data_url': self._create_resized_data_url(raw, ct, 600),
                             'blurred_data_url': self._create_blurred_from_bytes(raw),
                         }
-                    except Exception:
+                    except Exception as e:
+                        logger.warning("Error descargando imagen %s: %s", url[:80], e)
                         return url, None
 
             tasks = [download_one(url) for url in unique_urls]
@@ -251,6 +318,7 @@ class PDFGenerator:
                 if data:
                     results[url] = data
 
+        logger.info("Descarga paralela completa: %d/%d exitosas", len(results), len(unique_urls))
         return results
 
     @staticmethod
