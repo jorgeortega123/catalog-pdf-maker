@@ -4,16 +4,19 @@ Creates modern A4 PDF catalogs with HTML/CSS templates
 """
 import os
 import re
-import base64
 import asyncio
 import logging
 import time
 from concurrent.futures import ProcessPoolExecutor
 from io import BytesIO
-from typing import List, Optional, Dict
+from typing import List, Optional
+from urllib.parse import urlencode
 import requests
 
 logger = logging.getLogger("pdf_maker.generator")
+
+# Image optimization API
+IMG_OPTIMIZE_BASE = "https://api.llampukaq.com/v1/images"
 
 try:
     import playwright
@@ -32,18 +35,6 @@ try:
     HAS_PYPDF2 = True
 except ImportError:
     HAS_PYPDF2 = False
-
-try:
-    from PIL import Image, ImageFilter
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
-try:
-    import httpx
-    HAS_HTTPX = True
-except ImportError:
-    HAS_HTTPX = False
 
 from .models import PDFConfig
 
@@ -120,8 +111,8 @@ class PDFGenerator:
         if not HAS_JINJA2:
             raise ImportError("Jinja2 is not installed. Install it with: pip install jinja2")
 
-        # Prepare product data (parallel image downloads)
-        logger.info("Preparando datos de productos (descarga de imagenes)...")
+        # Prepare product data (optimized image URLs)
+        logger.info("Preparando datos de productos (optimizando URLs de imagenes)...")
         t1 = time.time()
         products_data = await self._prepare_products_data()
         logger.info("Datos de productos listos en %.2fs (%d productos)", time.time() - t1, len(products_data))
@@ -260,110 +251,20 @@ class PDFGenerator:
         writer.write(output)
         return output.getvalue()
 
-    # ── Parallel image download ──
-
-    async def _download_images_parallel(self, image_urls: List[str]) -> Dict[str, Dict]:
-        """Download all unique images in parallel, returning resized data URLs and blurred versions."""
-        unique_urls = list(set(url for url in image_urls if url))
-        if not unique_urls:
-            logger.info("Sin imagenes para descargar")
-            return {}
-
-        logger.info("Descargando %d imagenes unicas...", len(unique_urls))
-
-        if not HAS_HTTPX:
-            # Fallback: sequential download (slow but works without httpx)
-            logger.warning("httpx no disponible, descarga secuencial (lento)")
-            results = {}
-            for i, url in enumerate(unique_urls):
-                try:
-                    resp = requests.get(url, timeout=15)
-                    resp.raise_for_status()
-                    raw = resp.content
-                    ct = resp.headers.get('Content-Type', 'image/jpeg')
-                    results[url] = {
-                        'data_url': self._create_resized_data_url(raw, ct, 600),
-                        'blurred_data_url': self._create_blurred_from_bytes(raw),
-                    }
-                except Exception as e:
-                    logger.warning("Error descargando imagen %d/%d: %s", i + 1, len(unique_urls), e)
-            logger.info("Descarga secuencial completa: %d/%d exitosas", len(results), len(unique_urls))
-            return results
-
-        results = {}
-        semaphore = asyncio.Semaphore(10)
-
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-            async def download_one(url: str):
-                async with semaphore:
-                    try:
-                        response = await client.get(url)
-                        response.raise_for_status()
-                        raw = response.content
-                        ct = response.headers.get('content-type', 'image/jpeg')
-                        if not ct.startswith('image/'):
-                            ct = 'image/jpeg'
-                        return url, {
-                            'data_url': self._create_resized_data_url(raw, ct, 600),
-                            'blurred_data_url': self._create_blurred_from_bytes(raw),
-                        }
-                    except Exception as e:
-                        logger.warning("Error descargando imagen %s: %s", url[:80], e)
-                        return url, None
-
-            tasks = [download_one(url) for url in unique_urls]
-            responses = await asyncio.gather(*tasks)
-
-            for url, data in responses:
-                if data:
-                    results[url] = data
-
-        logger.info("Descarga paralela completa: %d/%d exitosas", len(results), len(unique_urls))
-        return results
+    # ── Image URL optimization ──
 
     @staticmethod
-    def _create_resized_data_url(raw_bytes: bytes, content_type: str, max_size: int = 600) -> str:
-        """Resize image to max_size on longest side and return as data URL."""
-        if not HAS_PIL:
-            b64 = base64.b64encode(raw_bytes).decode('utf-8')
-            return f"data:{content_type};base64,{b64}"
-        try:
-            img = Image.open(BytesIO(raw_bytes))
-            if max(img.size) > max_size:
-                img.thumbnail((max_size, max_size), Image.LANCZOS)
-            buffer = BytesIO()
-            if img.mode in ('RGBA', 'LA', 'P'):
-                img.save(buffer, format='PNG', optimize=True)
-                content_type = 'image/png'
-            else:
-                img = img.convert('RGB')
-                img.save(buffer, format='JPEG', quality=85, optimize=True)
-                content_type = 'image/jpeg'
-            b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-            return f"data:{content_type};base64,{b64}"
-        except Exception:
-            b64 = base64.b64encode(raw_bytes).decode('utf-8')
-            return f"data:{content_type};base64,{b64}"
-
-    @staticmethod
-    def _create_blurred_from_bytes(raw_bytes: bytes) -> str:
-        """Create blurred data URL from raw image bytes."""
-        if not HAS_PIL:
-            return ''
-        try:
-            img = Image.open(BytesIO(raw_bytes)).convert('RGB')
-            img = img.filter(ImageFilter.GaussianBlur(radius=12))
-            buffer = BytesIO()
-            img.save(buffer, format='JPEG', quality=50)
-            b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-            return f'data:image/jpeg;base64,{b64}'
-        except Exception:
-            return ''
+    def _optimize_image_url(url: str, w: int = 450, q: int = 80) -> str:
+        """Wrap image URL through the optimization API."""
+        if not url:
+            return url
+        params = urlencode({"url": url, "output": "webp", "w": w, "q": q})
+        return f"{IMG_OPTIMIZE_BASE}?{params}"
 
     # ── Product data preparation ──
 
     async def _prepare_products_data(self) -> List[dict]:
-        """Prepare products data with parallel image downloads."""
+        """Prepare products data with optimized image URLs (no downloading)."""
         def get_product_id(p):
             if isinstance(p, dict):
                 return p.get("id")
@@ -377,28 +278,15 @@ class PDFGenerator:
             )
         )
 
-        # First pass: extract product info and collect image URLs
-        products_info = []
-        raw_image_urls = []
+        products_data = []
         for product in sorted_products:
             info = self._extract_product_info(product)
-            raw_image_urls.append(info['image_url'])
-            products_info.append(info)
-
-        # Download all images in parallel
-        image_cache = await self._download_images_parallel(raw_image_urls)
-
-        # Second pass: attach downloaded image data
-        products_data = []
-        for info in products_info:
-            raw_url = info['image_url']
-            if raw_url and raw_url in image_cache:
-                info['image_url'] = image_cache[raw_url]['data_url']
-                info['blurred_image_url'] = image_cache[raw_url]['blurred_data_url']
-            else:
-                info['blurred_image_url'] = None
+            # Optimize image URL through API instead of downloading
+            if info['image_url']:
+                info['image_url'] = self._optimize_image_url(info['image_url'])
             products_data.append(info)
 
+        logger.info("Productos preparados: %d (URLs optimizadas via API)", len(products_data))
         return products_data
 
     def _extract_product_info(self, product) -> dict:
@@ -475,7 +363,6 @@ class PDFGenerator:
             'price': unit_price,
             'price_dozen_unit': price_dozen_unit,
             'image_url': image_url,
-            'blurred_image_url': None,
             'width': sizes_x,
             'height': sizes_y,
             'depth': sizes_z,

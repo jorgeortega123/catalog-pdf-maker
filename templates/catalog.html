@@ -168,7 +168,7 @@
             position: relative;
         }
 
-        /* Fondo blur (ya viene blurred del servidor) */
+        /* Fondo blur (CSS blur sobre la misma imagen optimizada) */
         .img-bg-blur {
             position: absolute;
             top: -2mm;
@@ -182,6 +182,9 @@
         .img-bg-blur img {
             width: 100%;
             height: 100%;
+            object-fit: cover;
+            filter: blur(12px);
+            transform: scale(1.1);
         }
 
         /* Imagen principal */
@@ -393,7 +396,7 @@
                                         <div class="card-img-box">
                                             {% if product.image_url %}
                                                 <div class="img-bg-blur">
-                                                    <img src="{{ product.blurred_image_url }}" alt="">
+                                                    <img src="{{ product.image_url }}" alt="">
                                                 </div>
                                                 <div class="img-main" style="background-image: url('{{ product.image_url }}');"></div>
                                             {% endif %}
