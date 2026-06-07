@@ -365,11 +365,11 @@ async def generate_pdf(
                 detail=f"PDF too large ({pdf_size_mb:.1f}MB). Maximum is 50MB."
             )
 
-        # Return PDF
+        # Return PDF using Response (sends Content-Length header, unlike StreamingResponse)
         filename = f"catalogo_{display_title.lower().replace(' ', '_')}.pdf"
         logger.info("Enviando PDF: %s | Tiempo total: %.2fs", filename, time.time() - t0)
-        return StreamingResponse(
-            io.BytesIO(pdf_bytes),
+        return Response(
+            content=pdf_bytes,
             media_type="application/pdf",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'}
         )

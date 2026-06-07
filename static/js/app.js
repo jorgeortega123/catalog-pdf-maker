@@ -509,7 +509,16 @@ class PDFCatalogApp {
             this.updateProgress(20);
             await this.delay(300);
 
-            const response = await fetch('/api/generate-pdf', { method: 'POST', body: formData });
+            // Timeout de 5 minutos - la generacion puede tardar varios minutos
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+
+            const response = await fetch('/api/generate-pdf', {
+                method: 'POST',
+                body: formData,
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
             this.updateProgress(60);
 
             if (!response.ok) {
@@ -537,7 +546,11 @@ class PDFCatalogApp {
             this.showToast('PDF generado exitosamente', 'success');
         } catch (error) {
             this.hideLoading();
-            this.showToast(error.message, 'error');
+            if (error.name === 'AbortError') {
+                this.showToast('La generación del PDF tardó demasiado (más de 5 minutos). Intenta con menos productos.', 'error');
+            } else {
+                this.showToast(error.message, 'error');
+            }
         }
     }
 
