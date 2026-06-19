@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import time
+import unicodedata
 import httpx
 
 from core.models import Category, Product, PDFConfig, ProductOrder, ImagesConfig
@@ -365,13 +366,25 @@ async def generate_pdf(
                 detail=f"PDF too large ({pdf_size_mb:.1f}MB). Maximum is 50MB."
             )
 
-        # Return PDF using Response (sends Content-Length header, unlike StreamingResponse)
-        filename = f"catalogo_{display_title.lower().replace(' ', '_')}.pdf"
+        # Return PDF using StreamingResponse with chunks (more reliable for large files)
+        display_title_ascii = unicodedata.normalize('NFKD', display_title).encode('ascii', 'ignore').decode('ascii')
+        filename = f"catalogo_{display_title_ascii.lower().replace(' ', '_')}.pdf"
+        # RFC 5987: also send UTF-8 encoded filename* for browsers that support it
+        from urllib.parse import quote
+        filename_utf8 = quote(f"catalogo_{display_title.lower().replace(' ', '_')}.pdf")
         logger.info("Enviando PDF: %s | Tiempo total: %.2fs", filename, time.time() - t0)
-        return Response(
-            content=pdf_bytes,
+
+        async def iter_pdf(data: bytes, chunk_size: int = 65536):
+            for i in range(0, len(data), chunk_size):
+                yield data[i:i + chunk_size]
+
+        return StreamingResponse(
+            iter_pdf(pdf_bytes),
             media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"; filename*=UTF-8\'\'{filename_utf8}',
+                "Content-Length": str(len(pdf_bytes)),
+            }
         )
 
     except HTTPException:
