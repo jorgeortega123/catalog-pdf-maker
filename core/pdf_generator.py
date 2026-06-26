@@ -77,11 +77,13 @@ class PDFGenerator:
     """Generates A4 PDF catalogs using Playwright + Jinja2 templates"""
 
     def __init__(self, config: PDFConfig, products: List, category_name: str,
-                 template_dir: str = None, show_dozen_price: bool = False):
+                 template_dir: str = None, show_dozen_price: bool = False,
+                 hide_colors: bool = False):
         self.config = config
         self.products = products
         self.category_name = category_name
         self.show_dozen_price = show_dozen_price
+        self.hide_colors = hide_colors
 
         if template_dir is None:
             current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -135,7 +137,8 @@ class PDFGenerator:
             skip_cover=skip_cover,
             skip_back_cover=skip_back_cover,
             use_bg_pdf=use_bg_pdf,
-            show_dozen_price=self.show_dozen_price
+            show_dozen_price=self.show_dozen_price,
+            show_colors=not self.hide_colors
         )
         html_size_mb = len(html_content) / (1024 * 1024)
         logger.info("HTML renderizado en %.2fs (%.2f MB)", time.time() - t2, html_size_mb)

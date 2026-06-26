@@ -11,6 +11,7 @@ class PDFCatalogApp {
             selectedColeccion: null,
             productsPerPage: 4,
             showDozenPrice: false,
+            hideColors: false,
             currentOrderIds: [],    // array of product IDs in current display order
             originalOrderIds: []    // array of product IDs as they came from API
         };
@@ -99,6 +100,11 @@ class PDFCatalogApp {
         document.getElementById('show-dozen-price').addEventListener('change', (e) => {
             this.data.showDozenPrice = e.target.checked;
             this.renderProductsTable();
+        });
+
+        // Hide colors checkbox
+        document.getElementById('hide-colors').addEventListener('change', (e) => {
+            this.data.hideColors = e.target.checked;
         });
 
         // Product table: move up/down
@@ -502,6 +508,7 @@ class PDFCatalogApp {
         if (backCoverPdf) formData.append('back_cover_pdf', backCoverPdf);
         if (backgroundPdf) formData.append('background_pdf', backgroundPdf);
         formData.append('showDozenPrice', this.data.showDozenPrice ? 'true' : 'false');
+        formData.append('hideColors', this.data.hideColors ? 'true' : 'false');
 
         this.showLoading('Generando PDF...', 'Procesando productos y portadas');
 

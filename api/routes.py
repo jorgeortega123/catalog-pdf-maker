@@ -203,6 +203,7 @@ async def generate_pdf(
     categoryTitle: str = Form(""),
     productsData: str = Form(""),
     showDozenPrice: str = Form("false"),
+    hideColors: str = Form("false"),
     cover_pdf: Optional[UploadFile] = File(None),
     back_cover_pdf: Optional[UploadFile] = File(None),
     background_pdf: Optional[UploadFile] = File(None),
@@ -349,7 +350,8 @@ async def generate_pdf(
         logger.info("Iniciando generacion de PDF con PDFGenerator...")
         t4 = time.time()
         generator = PDFGenerator(config, ordered_products, display_title,
-                                show_dozen_price=showDozenPrice.lower() == 'true')
+                                show_dozen_price=showDozenPrice.lower() == 'true',
+                                hide_colors=hideColors.lower() == 'true')
         pdf_bytes = await generator.generate(
             cover_pdf_bytes=cover_pdf_bytes,
             back_cover_pdf_bytes=back_cover_pdf_bytes,

@@ -21,6 +21,9 @@
                 <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;white-space:nowrap;">
                     <input type="checkbox" id="show-dozen-price"> Mostrar precio docena
                 </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;white-space:nowrap;">
+                    <input type="checkbox" id="hide-colors"> Ocultar colores
+                </label>
                 <button id="generate-btn" class="btn-generate" disabled>
                     <span class="btn-icon">📥</span>
                     <span class="btn-text">Generar Catálogo PDF</span>
@@ -166,6 +169,6 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
-    <script src="/static/js/app.js?v=4"></script>
+    <script src="/static/js/app.js?v=5"></script>
 </body>
 </html>
