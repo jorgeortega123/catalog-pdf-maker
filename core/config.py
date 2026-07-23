@@ -1,11 +1,20 @@
 """
 Configuration for PDF Catalog Generator
 """
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Application settings"""
+
+    # Ignora variables de entorno extra inyectadas por el orquestador
+    # (p.ej. Dokploy: APP_NAME, COMPOSE_PROJECT_NAME, DOCKER_CONFIG),
+    # que de lo contrario provocan ValidationError al arrancar.
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     # Backend API URL
     backend_url: str = "https://api.jandrea.art"
@@ -27,10 +36,6 @@ class Settings(BaseSettings):
     email: str = "jandrea593ec@gmail.com"
     password: str = ""
     jwt_secret: str = "pdf_catalog_2026_secure_key_x9k2m"
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
 
 
 # Global settings instance
