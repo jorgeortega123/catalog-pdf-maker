@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # PDF Generation
     max_products_warning: int = 100
-    max_pdf_size_mb: int = 50
+    max_pdf_size_mb: int = 100
 
     # Auth
     email: str = "jandrea593ec@gmail.com"

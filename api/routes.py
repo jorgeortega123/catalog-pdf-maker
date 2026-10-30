@@ -14,6 +14,7 @@ import httpx
 
 from core.models import Category, Product, PDFConfig, ProductOrder, ImagesConfig
 from core.pdf_generator import PDFGenerator, estimate_pdf_pages, validate_image_url
+from core.config import settings
 from api.proxy import backend_proxy
 
 logger = logging.getLogger("pdf_maker.routes")
@@ -361,11 +362,11 @@ async def generate_pdf(
 
         # Check PDF size
         pdf_size_mb = len(pdf_bytes) / (1024 * 1024)
-        if pdf_size_mb > 50:
-            logger.error("PDF demasiado grande: %.1fMB (max 50MB)", pdf_size_mb)
+        if pdf_size_mb > settings.max_pdf_size_mb:
+            logger.error("PDF demasiado grande: %.1fMB (max %dMB)", pdf_size_mb, settings.max_pdf_size_mb)
             raise HTTPException(
                 status_code=400,
-                detail=f"PDF too large ({pdf_size_mb:.1f}MB). Maximum is 50MB."
+                detail=f"PDF too large ({pdf_size_mb:.1f}MB). Maximum is {settings.max_pdf_size_mb}MB."
             )
 
         # Return PDF using StreamingResponse with chunks (more reliable for large files)

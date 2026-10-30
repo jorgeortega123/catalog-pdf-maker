@@ -19,7 +19,8 @@ class PDFCatalogApp {
         this.storageKeys = {
             productsPerPage: 'pdf_products_per_page',
             orders: 'pdf_order_',          // + categoryId
-            titles: 'pdf_title_'           // + categoryId
+        titles: 'pdf_title_',          // + categoryId
+        deleted: 'pdf_deleted_'        // + categoryId o col_<title>
         };
 
         this.init();
@@ -111,8 +112,10 @@ class PDFCatalogApp {
         document.getElementById('products-tbody').addEventListener('click', (e) => {
             const up = e.target.closest('.btn-move-up');
             const down = e.target.closest('.btn-move-down');
+            const del = e.target.closest('.btn-delete-product');
             if (up) this.moveProduct(up.closest('tr').dataset.id, -1);
             if (down) this.moveProduct(down.closest('tr').dataset.id, 1);
+            if (del) this.deleteProduct(del.closest('tr').dataset.id);
         });
 
         // Generate
@@ -159,7 +162,10 @@ class PDFCatalogApp {
             if (!res.ok) throw new Error('Error cargando productos');
             const data = await res.json();
 
-            this.data.products = data.products || [];
+            const deletedKey = this.storageKeys.deleted + categoryId;
+            this.data.deletedKey = deletedKey;
+            const deleted = this._loadDeleted(deletedKey);
+            this.data.products = (data.products || []).filter(p => !deleted.has(p.id));
             this.data.selectedCategory = categoryId;
 
             // Original order = IDs as they came from API
@@ -249,7 +255,10 @@ class PDFCatalogApp {
             if (!res.ok) throw new Error('Error cargando productos de colección');
             const data = await res.json();
 
-            this.data.products = data.products || [];
+            const deletedKey = this.storageKeys.deleted + 'col_' + title;
+            this.data.deletedKey = deletedKey;
+            const deleted = this._loadDeleted(deletedKey);
+            this.data.products = (data.products || []).filter(p => !deleted.has(p.id));
             this.data.selectedColeccion = title;
             this.data.selectedCategory = null;
 
@@ -337,6 +346,7 @@ class PDFCatalogApp {
                     <div class="action-buttons">
                         <button class="btn-action btn-move-up" ${index === 0 ? 'disabled' : ''}>↑</button>
                         <button class="btn-action btn-move-down" ${index === lastIndex ? 'disabled' : ''}>↓</button>
+                        <button class="btn-action btn-delete-product" title="Eliminar del catálogo">✕</button>
                     </div>
                 </td>
             </tr>`;
@@ -384,6 +394,33 @@ class PDFCatalogApp {
         this.saveOrder();
         this.renderProductsTable();
         this.updateResetButton();
+    }
+
+    deleteProduct(productId) {
+        const product = this.getProductById(productId);
+        const name = product?.title || 'este producto';
+        if (!confirm(`¿Eliminar "${name}" del catálogo?`)) return;
+
+        this.data.products = this.data.products.filter(p => p.id !== productId);
+        this.data.currentOrderIds = this.data.currentOrderIds.filter(id => id !== productId);
+        this.data.originalOrderIds = this.data.originalOrderIds.filter(id => id !== productId);
+
+        const deleted = this._loadDeleted(this.data.deletedKey);
+        deleted.add(productId);
+        localStorage.setItem(this.data.deletedKey, JSON.stringify([...deleted]));
+
+        this.saveOrder();
+        this.renderProductsTable();
+        this.updateResetButton();
+        this.updateGenerateButton();
+    }
+
+    _loadDeleted(key) {
+        try {
+            return new Set(JSON.parse(localStorage.getItem(key) || '[]'));
+        } catch {
+            return new Set();
+        }
     }
 
     // ── Drag & Drop ───────────────────────────────
