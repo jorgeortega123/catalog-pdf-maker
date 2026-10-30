@@ -16,7 +16,7 @@ import requests
 logger = logging.getLogger("pdf_maker.generator")
 
 # Image optimization API
-IMG_OPTIMIZE_BASE = "https://api.llampukaq.com/v1/images"
+IMG_OPTIMIZE_BASE = "https://images.llampukaq.com/v1/images"
 
 try:
     import playwright
